@@ -1,5 +1,15 @@
+import {Client} from '@notionhq/client';
 import dotenv from 'dotenv';
 dotenv.config();
 
-async function main() {}
+async function main() {
+	const notion = new Client({
+		auth: process.env.NOTION_TOKEN,
+	});
+	const response = await notion.databases.query({
+		database_id: process.env.NOTION_DB_TASKS,
+	});
+	console.log('Got response:', response);
+}
+
 main();
