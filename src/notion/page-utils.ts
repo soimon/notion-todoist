@@ -1,14 +1,39 @@
 import {PageObjectResponse} from '@notionhq/client/build/src/api-endpoints';
 
-export const getTitle = (page: PageObjectResponse): string | undefined => {
-	const titleProperty = Object.values(page.properties).find(
-		property => property.type === 'title'
-	) as ((typeof page.properties)[number] & {type: 'title'}) | undefined;
-	const titleValue = titleProperty?.title[0]?.plain_text;
-	return titleValue;
-};
+export const getProperties = <
+	TList extends PropertiesList<TNames>,
+	TNames extends string,
+>(
+	page: PageObjectResponse,
+	properties: TList
+): GetPropertiesResult<TList> =>
+	Object.fromEntries(
+		Object.entries<PropertyDescriptor>(properties).map(([name, descriptor]) => [
+			name,
+			typeof descriptor === 'string'
+				? getPropertyByName(page, name, descriptor)
+				: getPropertyById(page, descriptor.id, descriptor.type),
+		])
+	) as GetPropertiesResult<TList>;
 
-export const getProperty = <T extends PropertyType>(
+export type PropertiesList<N extends string = string> = Record<
+	N,
+	PropertyDescriptor
+>;
+type PropertyDescriptor = PropertyType | {id: string; type: PropertyType};
+type PropertyType = PageObjectResponse['properties'][string]['type'];
+export type GetPropertiesResult<TList extends PropertiesList> = {
+	[K in keyof TList]: PropertyValue<ExtractPropertyType<TList[K]>> | undefined;
+};
+type PropertyValue<T extends PropertyType> =
+	PageObjectResponse['properties'][string] & {type: T};
+type ExtractPropertyType<T extends PropertyDescriptor> = T extends {
+	type: infer P;
+}
+	? P
+	: T;
+
+export const getPropertyByName = <T extends PropertyType>(
 	page: PageObjectResponse,
 	propertyName: string,
 	propertyType: T
@@ -34,43 +59,10 @@ export const getPropertyById = <T extends PropertyType>(
 	return undefined;
 };
 
-type PropertyType = PageObjectResponse['properties'][string]['type'];
-type PropertyValue<T extends PropertyType> =
-	PageObjectResponse['properties'][string] & {type: T};
-
-export const getProperties = <
-	TProperties extends Record<N, PropertyType>,
-	N extends string,
->(
-	page: PageObjectResponse,
-	properties: TProperties
-): GetPropertiesResult<TProperties> =>
-	Object.fromEntries(
-		Object.entries<PropertyType>(properties).map(([name, type]) => [
-			name,
-			getProperty(page, name, type),
-		])
-	) as GetPropertiesResult<TProperties>;
-
-type GetPropertiesResult<TProperties extends Record<string, PropertyType>> = {
-	[K in keyof TProperties]: PropertyValue<TProperties[K]> | undefined;
-};
-
-export const getPropertiesById = <
-	TProperties extends Record<N, {id: string; type: PropertyType}>,
-	N extends string,
->(
-	page: PageObjectResponse,
-	properties: TProperties
-): GetPropertiesByIdResult<TProperties> =>
-	Object.fromEntries(
-		Object.entries<{id: string; type: PropertyType}>(properties).map(
-			([name, {id, type}]) => [name, getPropertyById(page, id, type)]
-		)
-	) as GetPropertiesByIdResult<TProperties>;
-
-type GetPropertiesByIdResult<
-	TProperties extends Record<string, {id: string; type: PropertyType}>,
-> = {
-	[K in keyof TProperties]: PropertyValue<TProperties[K]['type']> | undefined;
+export const getTitle = (page: PageObjectResponse): string | undefined => {
+	const titleProperty = Object.values(page.properties).find(
+		property => property.type === 'title'
+	) as ((typeof page.properties)[number] & {type: 'title'}) | undefined;
+	const titleValue = titleProperty?.title[0]?.plain_text;
+	return titleValue;
 };
