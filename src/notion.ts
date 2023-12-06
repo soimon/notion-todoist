@@ -39,25 +39,19 @@ type PropertyValue<T extends PropertyType> =
 	PageObjectResponse['properties'][string] & {type: T};
 
 export const getProperties = <
-	TProperties extends [...P: {name: N; type: PropertyType}[]],
+	TProperties extends Record<N, PropertyType>,
 	N extends string,
 >(
 	page: PageObjectResponse,
 	properties: TProperties
 ): GetPropertiesResult<TProperties> =>
 	Object.fromEntries(
-		properties.map(property => [
-			property.name,
-			getProperty(page, property.name, property.type),
+		Object.entries<PropertyType>(properties).map(([name, type]) => [
+			name,
+			getProperty(page, name, type),
 		])
 	) as GetPropertiesResult<TProperties>;
 
-type GetPropertiesResult<
-	TProperties extends {name: string; type: PropertyType}[],
-> = {
-	[K in TProperties[number]['name']]:
-		| PropertyValue<FindMatchingType<TProperties[number], K>>
-		| undefined;
+type GetPropertiesResult<TProperties extends Record<string, PropertyType>> = {
+	[K in keyof TProperties]: PropertyValue<TProperties[K]> | undefined;
 };
-
-type FindMatchingType<T, K> = T extends {name: K; type: infer U} ? U : never;
