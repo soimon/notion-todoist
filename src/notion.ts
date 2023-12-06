@@ -55,3 +55,22 @@ export const getProperties = <
 type GetPropertiesResult<TProperties extends Record<string, PropertyType>> = {
 	[K in keyof TProperties]: PropertyValue<TProperties[K]> | undefined;
 };
+
+export const getPropertiesById = <
+	TProperties extends Record<N, {id: string; type: PropertyType}>,
+	N extends string,
+>(
+	page: PageObjectResponse,
+	properties: TProperties
+): GetPropertiesByIdResult<TProperties> =>
+	Object.fromEntries(
+		Object.entries<{id: string; type: PropertyType}>(properties).map(
+			([name, {id, type}]) => [name, getPropertyById(page, id, type)]
+		)
+	) as GetPropertiesByIdResult<TProperties>;
+
+type GetPropertiesByIdResult<
+	TProperties extends Record<string, {id: string; type: PropertyType}>,
+> = {
+	[K in keyof TProperties]: PropertyValue<TProperties[K]['type']> | undefined;
+};
