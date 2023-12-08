@@ -1,5 +1,19 @@
 import {PageObjectResponse} from '@notionhq/client/build/src/api-endpoints';
 
+export type NotionPage<TPropertiesList extends PropertiesList> = Omit<
+	PageObjectResponse,
+	'properties'
+> & {
+	properties: GetPropertiesResult<TPropertiesList>;
+};
+
+export function enhancePageProperties<TPropertiesList extends PropertiesList>(
+	response: PageObjectResponse,
+	properties: TPropertiesList
+): NotionPage<TPropertiesList> {
+	return {...response, properties: getProperties(response, properties)};
+}
+
 export const getProperties = <
 	TList extends PropertiesList<TNames>,
 	TNames extends string,
@@ -57,6 +71,15 @@ export const getPropertyById = <T extends PropertyType>(
 		return property as PageObjectResponse['properties'][string] & {type: T};
 	}
 	return undefined;
+};
+
+export const getPropertyIds = (properties: PropertiesList) => {
+	const ids = Object.entries(properties).map(([, data]) =>
+		typeof data === 'object' ? data.id : null
+	);
+	const hasOnlyIds = (list: typeof ids): list is string[] =>
+		!list.some(i => typeof i !== 'string');
+	return hasOnlyIds(ids) ? ids : undefined;
 };
 
 export const getTitle = (page: PageObjectResponse): string | undefined => {

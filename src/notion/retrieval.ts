@@ -1,6 +1,11 @@
 import {Client} from '@notionhq/client';
-import {PropertiesList, GetPropertiesResult, getProperties} from './page-utils';
 import {PageObjectResponse} from '@notionhq/client/build/src/api-endpoints';
+import {
+	NotionPage,
+	PropertiesList,
+	enhancePageProperties,
+	getPropertyIds,
+} from './properties';
 
 export async function retrievePage<
 	TPropertiesList extends PropertiesList,
@@ -14,22 +19,48 @@ export async function retrievePage<
 		filter_properties: getPropertyIds(options.properties),
 	});
 	if (!('url' in response)) return undefined;
-	const properties = getProperties(response, options.properties);
-	return {...response, properties};
+	return enhancePageProperties<TPropertiesList>(response, options.properties);
 }
 
-const getPropertyIds = (properties: PropertiesList) => {
-	const ids = Object.entries(properties).map(([, data]) =>
-		typeof data === 'object' ? data.id : null
-	);
-	const hasOnlyIds = (list: typeof ids): list is string[] =>
-		!list.some(i => typeof i !== 'string');
-	return hasOnlyIds(ids) ? ids : undefined;
+type QueryOptions = {
+	notion: Client;
+	database: string;
+	filter: QueryFilters;
 };
+type QueryFilters = Parameters<Client['databases']['query']>[0]['filter'];
 
-type NotionPage<TPropertiesList extends PropertiesList> = Omit<
-	PageObjectResponse,
-	'properties'
-> & {
-	properties: GetPropertiesResult<TPropertiesList>;
-};
+export async function queryDatabase<TPropertiesList extends PropertiesList>(
+	options: QueryOptions & {properties: TPropertiesList}
+): Promise<NotionPage<TPropertiesList>[]> {
+	return (await accumulateQueryResults(options)).map(p =>
+		enhancePageProperties(p, options.properties)
+	);
+}
+
+async function accumulateQueryResults(options: QueryOptions) {
+	let next_cursor: string | null = null;
+	const pages: PageObjectResponse[] = [];
+	do {
+		const response = await query(options, next_cursor ?? undefined);
+		next_cursor = response.next_cursor;
+		pages.push(
+			...response.results.filter(
+				(v): v is PageObjectResponse => v.object === 'page'
+			)
+		);
+	} while (next_cursor);
+	return pages;
+}
+
+// TODO: Respond to rate limits
+
+const query = (
+	{database: database_id, filter, notion}: QueryOptions,
+	startAt?: string
+) =>
+	notion.databases.query({
+		database_id,
+		filter,
+		page_size: 100,
+		start_cursor: startAt,
+	});
