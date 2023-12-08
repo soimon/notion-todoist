@@ -97,3 +97,15 @@ const query = (
 		page_size: 100,
 		start_cursor: startAt,
 	});
+
+export const getDatabaseSchema = async (options: {
+	notion: Client;
+	database: string;
+}): Promise<PropertiesList> => {
+	const {properties} = await options.notion.databases.retrieve({
+		database_id: options.database,
+	});
+	return Object.fromEntries(
+		Object.entries(properties).map(([k, {type, id}]) => [k, {type, id}])
+	);
+};
