@@ -1,2 +1,2 @@
-export * from './page-utils';
+export * from './properties';
 export * from './retrieval';

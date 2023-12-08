@@ -22,12 +22,45 @@ export async function retrievePage<
 	return enhancePageProperties<TPropertiesList>(response, options.properties);
 }
 
+type GetChangedPageOptions = Omit<QueryOptions, 'filter'> & {
+	since: Date;
+	filter?: Extract<QueryFilters, {and: unknown}>['and'];
+};
+
+export async function getChangedPages<TPropertiesList extends PropertiesList>(
+	options: GetChangedPageOptions & {properties: TPropertiesList}
+): Promise<NotionPage<TPropertiesList>[]> {
+	return queryDatabase({
+		...options,
+		filter: {
+			or: [
+				{
+					timestamp: 'last_edited_time',
+					last_edited_time: {
+						after: options.since.toISOString(),
+					},
+				},
+				{
+					timestamp: 'created_time',
+					created_time: {
+						after: options.since.toISOString(),
+					},
+				},
+			],
+			and: options.filter,
+		},
+	});
+}
+
 type QueryOptions = {
 	notion: Client;
 	database: string;
 	filter: QueryFilters;
 };
-type QueryFilters = Parameters<Client['databases']['query']>[0]['filter'];
+type QueryFilters = Exclude<
+	Parameters<Client['databases']['query']>[0]['filter'],
+	undefined
+>;
 
 export async function queryDatabase<TPropertiesList extends PropertiesList>(
 	options: QueryOptions & {properties: TPropertiesList}
