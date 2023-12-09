@@ -1,36 +1,51 @@
+import {TodoistApi} from '@doist/todoist-api-typescript';
 import {Client} from '@notionhq/client';
 import dotenv from 'dotenv';
-import {retrievePage} from './notion/';
-import {getChangedPages, queryDatabase} from './notion/retrieval';
+import {NotionTaskRepository} from './repositories/tasks-notion';
+import {TodoistTaskRepository} from './repositories/todoist';
 dotenv.config();
 
 async function main() {
+	// Create repositories
+
 	const notion = new Client({
 		auth: process.env.NOTION_TOKEN,
 	});
-	const page = await retrievePage({
+	const todoist = new TodoistApi(process.env.TODOIST_TOKEN);
+	const todoistTasks = new TodoistTaskRepository(todoist);
+	const notionTasks = new NotionTaskRepository(
 		notion,
-		id: '7f19f60417404abc85e35a1df025c651',
-		properties: {
-			state: {id: 'oua%5B', type: 'status'},
-			Doel: 'relation',
-			// Status: 'status',
-		},
-	});
+		process.env.NOTION_DB_TASKS
+	);
 
-	const lastQueried = new Date();
-	lastQueried.setHours(lastQueried.getHours() - 1);
-	const pages = await getChangedPages({
-		notion,
-		since: lastQueried,
-		database: process.env.NOTION_DB_TASKS,
-		properties: {
-			state: {id: 'oua%5B', type: 'status'},
-			Doel: 'relation',
-			// Status: 'status',
-		},
+	// Fetch notion tasks
+
+	const tasks = await notionTasks.getOpenTasks();
+	const changedTasks = tasks.filter(task => task.todoistId !== '0');
+	const newTasks = tasks.filter(task => task.todoistId === '0');
+
+	// Update tasks in Todoist
+
+	for (const notionTask of changedTasks) {
+		const wasFound = await todoistTasks.update(notionTask.todoistId, {
+			content: notionTask.content,
+			description: notionTask.projectName,
+			isCompleted: notionTask.isCompleted,
+			dueDate: notionTask.scheduled,
+		});
+		if (!wasFound) newTasks.push(notionTask);
+	}
+
+	// Create tasks in Todoist
+
+	newTasks.forEach(async t => {
+		const todoistId = await todoistTasks.add({
+			content: t.content,
+			description: t.projectName,
+			dueDate: t.scheduled,
+		});
+		await notionTasks.linkWithTodoist(t.notionId, todoistId);
 	});
-	console.log(pages[0]!.properties.state);
 }
 
 main();

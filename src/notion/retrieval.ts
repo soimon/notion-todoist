@@ -2,14 +2,12 @@ import {Client} from '@notionhq/client';
 import {PageObjectResponse} from '@notionhq/client/build/src/api-endpoints';
 import {
 	NotionPage,
-	PropertiesList,
+	Schema,
 	enhancePageProperties,
 	getPropertyIds,
 } from './properties';
 
-export async function retrievePage<
-	TPropertiesList extends PropertiesList,
->(options: {
+export async function retrievePage<TPropertiesList extends Schema>(options: {
 	id: string;
 	notion: Client;
 	properties: TPropertiesList;
@@ -24,12 +22,16 @@ export async function retrievePage<
 
 type GetChangedPageOptions = Omit<QueryOptions, 'filter'> & {
 	since: Date;
-	filter?: Extract<QueryFilters, {and: unknown}>['and'];
+	filter?: SecondaryQueryFilters;
 };
+export type SecondaryQueryFilters = Extract<
+	QueryFilters,
+	{and: unknown}
+>['and'];
 
-export async function getChangedPages<TPropertiesList extends PropertiesList>(
-	options: GetChangedPageOptions & {properties: TPropertiesList}
-): Promise<NotionPage<TPropertiesList>[]> {
+export async function getChangedPages<TSchema extends Schema>(
+	options: GetChangedPageOptions & {schema: TSchema}
+): Promise<NotionPage<TSchema>[]> {
 	return queryDatabase({
 		...options,
 		filter: {
@@ -57,16 +59,16 @@ type QueryOptions = {
 	database: string;
 	filter: QueryFilters;
 };
-type QueryFilters = Exclude<
+export type QueryFilters = Exclude<
 	Parameters<Client['databases']['query']>[0]['filter'],
 	undefined
 >;
 
-export async function queryDatabase<TPropertiesList extends PropertiesList>(
-	options: QueryOptions & {properties: TPropertiesList}
+export async function queryDatabase<TPropertiesList extends Schema>(
+	options: QueryOptions & {schema: TPropertiesList}
 ): Promise<NotionPage<TPropertiesList>[]> {
 	return (await accumulateQueryResults(options)).map(p =>
-		enhancePageProperties(p, options.properties)
+		enhancePageProperties(p, options.schema)
 	);
 }
 
@@ -101,7 +103,7 @@ const query = (
 export const getDatabaseSchema = async (options: {
 	notion: Client;
 	database: string;
-}): Promise<PropertiesList> => {
+}): Promise<Schema> => {
 	const {properties} = await options.notion.databases.retrieve({
 		database_id: options.database,
 	});

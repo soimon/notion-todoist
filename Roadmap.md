@@ -9,9 +9,9 @@ This is a simple script that syncs tasks from a Notion database to a Todoist pro
 ### Determining which tasks to sync
 - [x] Get tasks from a Notion database
   - [x] Query the API
-  - [ ] Turn into a generic DTO
+  - [x] Turn into a generic DTO
 - [ ] Get tasks from a Todoist project
-  - [ ] Query the API
+  - [x] Query the API
   - [ ] Turn into a generic DTO
 - [ ] Compare the two lists
   - [ ] Mark changes
@@ -20,8 +20,8 @@ This is a simple script that syncs tasks from a Notion database to a Todoist pro
 
 ### Syncing tasks
 - [ ] Sync tasks from Notion to Todoist
-  - [ ] Create new tasks
-  - [ ] Update existing tasks
+  - [x] Create new tasks
+  - [x] Update existing tasks
   - [ ] Delete tasks
 - [ ] Sync tasks from Todoist to Notion
   - [ ] Create new tasks

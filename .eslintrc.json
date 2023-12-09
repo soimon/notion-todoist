@@ -3,6 +3,7 @@
 	"rules": {
 		"prettier/prettier": "off",
 		"quotes": "off",
-		"eol-last": "off"
+		"eol-last": "off",
+		"no-trailing-spaces": "off"
 	}
 }

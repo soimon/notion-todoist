@@ -4,7 +4,9 @@
 		"rootDir": ".",
 		"outDir": "build",
 		"esModuleInterop": true,
-		"noUncheckedIndexedAccess": true
+		"noUncheckedIndexedAccess": true,
+		"resolveJsonModule": true,
+		"lib": ["ES2020"]
 	},
 	"include": ["src/**/*.ts", "test/**/*.ts"]
 }

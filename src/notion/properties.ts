@@ -1,42 +1,42 @@
 import {PageObjectResponse} from '@notionhq/client/build/src/api-endpoints';
 
-export type NotionPage<TPropertiesList extends PropertiesList> = Omit<
+export type NotionPage<TSchema extends Schema> = Omit<
 	PageObjectResponse,
 	'properties'
 > & {
-	properties: GetPropertiesResult<TPropertiesList>;
+	properties: GetPropertiesResult<TSchema>;
 };
 
-export function enhancePageProperties<TPropertiesList extends PropertiesList>(
+export function enhancePageProperties<TSchema extends Schema>(
 	response: PageObjectResponse,
-	properties: TPropertiesList
-): NotionPage<TPropertiesList> {
-	return {...response, properties: getProperties(response, properties)};
+	schema: TSchema
+): NotionPage<TSchema> {
+	return {...response, properties: getProperties(response, schema)};
 }
 
 export const getProperties = <
-	TList extends PropertiesList<TNames>,
+	TSchema extends Schema<TNames>,
 	TNames extends string,
 >(
 	page: PageObjectResponse,
-	properties: TList
-): GetPropertiesResult<TList> =>
+	schema: TSchema
+): GetPropertiesResult<TSchema> =>
 	Object.fromEntries(
-		Object.entries<PropertyDescriptor>(properties).map(([name, descriptor]) => [
+		Object.entries<PropertyDescriptor>(schema).map(([name, descriptor]) => [
 			name,
 			typeof descriptor === 'string'
 				? getPropertyByName(page, name, descriptor)
 				: getPropertyById(page, descriptor.id, descriptor.type),
 		])
-	) as GetPropertiesResult<TList>;
+	) as GetPropertiesResult<TSchema>;
 
-export type PropertiesList<N extends string = string> = Record<
-	N,
-	PropertyDescriptor
->;
+export const defineSchema = <T extends Schema>(schema: T): Readonly<T> =>
+	schema;
+
+export type Schema<N extends string = string> = Record<N, PropertyDescriptor>;
 type PropertyDescriptor = PropertyType | {id: string; type: PropertyType};
 type PropertyType = PageObjectResponse['properties'][string]['type'];
-export type GetPropertiesResult<TList extends PropertiesList> = {
+export type GetPropertiesResult<TList extends Schema> = {
 	[K in keyof TList]: PropertyValue<ExtractPropertyType<TList[K]>> | undefined;
 };
 type PropertyValue<T extends PropertyType> =
@@ -73,7 +73,7 @@ export const getPropertyById = <T extends PropertyType>(
 	return undefined;
 };
 
-export const getPropertyIds = (properties: PropertiesList) => {
+export const getPropertyIds = (properties: Schema) => {
 	const ids = Object.entries(properties).map(([, data]) =>
 		typeof data === 'object' ? data.id : null
 	);

@@ -4,5 +4,7 @@ declare namespace NodeJS {
 		NOTION_TOKEN: string;
 		NOTION_DB_PROJECTS: string;
 		NOTION_DB_TASKS: string;
+
+		TODOIST_TOKEN: string;
 	}
 }
