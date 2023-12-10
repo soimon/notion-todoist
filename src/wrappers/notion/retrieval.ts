@@ -57,7 +57,7 @@ export async function getChangedPages<TSchema extends Schema>(
 type QueryOptions = {
 	notion: Client;
 	database: string;
-	filter: QueryFilters;
+	filter?: QueryFilters;
 };
 export type QueryFilters = Exclude<
 	Parameters<Client['databases']['query']>[0]['filter'],

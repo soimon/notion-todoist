@@ -18,6 +18,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "20.8.2",
+		"@types/object.groupby": "^1.0.3",
 		"gts": "^5.2.0",
 		"tsc-watch": "^6.0.4",
 		"type-fest": "^4.8.3",
@@ -26,6 +27,7 @@
 	"dependencies": {
 		"@doist/todoist-api-typescript": "^3.0.1",
 		"@notionhq/client": "^2.2.14",
-		"dotenv": "^16.3.1"
+		"dotenv": "^16.3.1",
+		"object.groupby": "^1.0.1"
 	}
 }

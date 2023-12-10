@@ -3,8 +3,10 @@ declare namespace NodeJS {
 	export interface ProcessEnv {
 		NOTION_TOKEN: string;
 		NOTION_DB_PROJECTS: string;
+		NOTION_DB_GOALS: string;
 		NOTION_DB_TASKS: string;
 
 		TODOIST_TOKEN: string;
+		TODOIST_PROJECT_ROOT: string;
 	}
 }

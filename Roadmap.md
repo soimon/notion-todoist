@@ -10,18 +10,18 @@ This is a simple script that syncs tasks from a Notion database to a Todoist pro
 - [x] Get tasks from a Notion database
   - [x] Query the API
   - [x] Turn into a generic DTO
-- [ ] Get tasks from a Todoist project
+- [x] Get tasks from a Todoist project
   - [x] Query the API
-  - [ ] Turn into a generic DTO
-- [ ] Compare the two lists
-  - [ ] Mark changes
+  - [x] Turn into a generic DTO
+- [x] Compare the two lists
+  - [x] Mark changes
   - [ ] Determine which way to sync using timestamps
 - [ ] Sync the two lists
 
 ### Syncing tasks
 - [ ] Sync tasks from Notion to Todoist
-  - [x] Create new tasks
-  - [x] Update existing tasks
+  - [ ] Create new tasks
+  - [ ] Update existing tasks
   - [ ] Delete tasks
 - [ ] Sync tasks from Todoist to Notion
   - [ ] Create new tasks
