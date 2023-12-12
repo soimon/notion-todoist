@@ -3,7 +3,7 @@ import {Client} from '@notionhq/client';
 import dotenv from 'dotenv';
 import {NotionProjectRepository} from './repositories/notion/projects';
 import {TodoistProjectRepository} from './repositories/todoist/projects';
-import {cacheResult} from './utils/dev';
+import {cacheResult, log} from './utils/dev';
 import {makeProjectSyncStrategy} from './sync/strategies';
 import {ProjectSyncService} from './sync/project-sync-service';
 dotenv.config();
@@ -45,6 +45,7 @@ async function main() {
 		notionProjectsRepo,
 		todoistProjectsRepo
 	);
+	log('strategy-project', projectStrategy);
 	projectSyncer.sync(projectStrategy);
 
 	// const todoistTasks = new TodoistTaskRepository(todoist);

@@ -6,9 +6,16 @@ export async function cacheResult<T>(name: string, fetcher: () => Promise<T>) {
 		.then(v => JSON.parse(v))
 		.catch(() => undefined);
 	if (data) return data as T;
-	else {
-		const fetched = await fetcher();
-		await writeFile(file, JSON.stringify(fetched));
-		return fetched;
-	}
+	else return logResult(name, fetcher);
+}
+
+export async function logResult<T>(name: string, fetcher: () => Promise<T>) {
+	const fetched = await fetcher();
+	await log(name, fetched);
+	return fetched;
+}
+
+export async function log(name: string, data: unknown) {
+	const file = `cache/${name}.json`;
+	await writeFile(file, JSON.stringify(data));
 }
