@@ -16,11 +16,9 @@ export class NotionProjectRepository {
 	// Fetching
 
 	async getProjects(): Promise<NotionProject[]> {
+		const projects = await this.fetchProjects();
 		const goals = await this.getGoals().then(g =>
 			groupBy(g, ({notion}) => notion.projectId)
-		);
-		const projects = await this.fetchProjects().then(p =>
-			p.filter(({id}) => goals[id])
 		);
 
 		return projects
@@ -28,8 +26,8 @@ export class NotionProjectRepository {
 				return {
 					syncId: properties.syncId?.rich_text[0]?.plain_text ?? '',
 					name: properties.name?.title[0]?.plain_text ?? '',
-					isBlocked: goals[id]!.every(g => g.isBlocked),
-					goals: goals[id]!.sort(sortByBlocked),
+					isBlocked: goals[id]?.every(g => g.isBlocked) ?? false,
+					goals: goals[id]?.sort(sortByBlocked) ?? [],
 					notion: {
 						id,
 					},
