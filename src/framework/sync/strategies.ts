@@ -1,50 +1,18 @@
-import {NotionProject} from '@project/notion/models';
-import {TodoistProject} from '@project/todoist/models';
-import {Project} from '../models';
-import {diff} from '../utils/diffing';
+import {ExclusiveKeys, KeyValue} from '@framework/utils/types';
+import {Goal, Project} from '../models';
 
-export type ProjectSyncStrategy = {
-	notion: {
-		add: TodoistProject[];
+export type ProjectSyncStrategy<
+	T1 extends Project,
+	T2 extends Project,
+> = PlatformSyncStrategy<T1, T2> & PlatformSyncStrategy<T2, T1>;
+
+type PlatformSyncStrategy<T1 extends Project, T2 extends Project> = KeyValue<
+	ExclusiveKeys<T1, T2>,
+	{
+		add: T2[];
 		remove: Project[];
-		update: Project[];
-	};
-	todoist: {
-		add: NotionProject[];
-		remove: Project[];
-		update: Project[];
-	};
-};
+		update: (Omit<Project, 'goals'> & {goals: GoalSyncStrategy})[];
+	}
+>;
 
-export function makeProjectSyncStrategy(
-	notion: NotionProject[],
-	todoist: TodoistProject[]
-): ProjectSyncStrategy {
-	const diff = diffProjects(notion, todoist);
-	return {
-		notion: {add: [], remove: [], update: []},
-		todoist: {
-			add: diff.loners.filter(isNotion),
-			remove: diff.loners.filter(isTodoist),
-			update: diff.pairs.filter(p => p.differences.length).map(p => p.notion),
-		},
-	};
-}
-
-function diffProjects(notion: NotionProject[], todoist: TodoistProject[]) {
-	const {loners, pairs} = diff(notion, todoist, v => v.syncId);
-	return {
-		loners,
-		pairs: pairs.map(project => ({
-			...project,
-			goals: diff(project.notion.goals, project.todoist.goals, v => v.syncId),
-		})),
-	};
-}
-
-// Filters
-
-const isNotion = (p: NotionProject | TodoistProject): p is NotionProject =>
-	'notion' in p;
-const isTodoist = (p: NotionProject | TodoistProject): p is TodoistProject =>
-	'todoist' in p;
+export type GoalSyncStrategy = {add: Goal[]; remove: Goal[]; update: Goal[]};

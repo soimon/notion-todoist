@@ -1,3 +1,4 @@
+import {ExclusiveKeys, KeyValue} from '@framework/utils/types';
 import groupBy from 'object.groupby';
 // eslint-disable-next-line node/no-unpublished-import
 import {FixedLengthArray} from 'type-fest';
@@ -5,8 +6,8 @@ import {FixedLengthArray} from 'type-fest';
 export type DiffResult<
 	T1 extends object,
 	T2 extends object,
-	D1 extends Exclude<keyof T1, keyof T2> = Exclude<keyof T1, keyof T2>,
-	D2 extends Exclude<keyof T2, keyof T1> = Exclude<keyof T2, keyof T1>,
+	D1 extends ExclusiveKeys<T1, T2> = ExclusiveKeys<T1, T2>,
+	D2 extends ExclusiveKeys<T2, T1> = ExclusiveKeys<T2, T1>,
 > = {
 	loners: (T1 | T2)[];
 	pairs: ({differences: (keyof T1 & keyof T2)[]} & KeyValue<D1, T1> &
@@ -16,8 +17,8 @@ export type DiffResult<
 export function diff<
 	T1 extends object,
 	T2 extends object,
-	D1 extends Exclude<keyof T1, keyof T2>,
-	D2 extends Exclude<keyof T2, keyof T1>,
+	D1 extends ExclusiveKeys<T1, T2>,
+	D2 extends ExclusiveKeys<T2, T1>,
 >(
 	a: T1[],
 	b: T2[],
@@ -39,8 +40,8 @@ export function diff<
 function findDiscriminators<
 	T1 extends object,
 	T2 extends object,
-	D1 extends Exclude<keyof T1, keyof T2>,
-	D2 extends Exclude<keyof T2, keyof T1>,
+	D1 extends ExclusiveKeys<T1, T2>,
+	D2 extends ExclusiveKeys<T2, T1>,
 >(a: T1, b: T2): [D1, D2] {
 	const aKeys = Object.keys(a) as (keyof T1)[];
 	const bKeys = Object.keys(b) as (keyof T2)[];
@@ -52,8 +53,8 @@ function findDiscriminators<
 function diffPairs<
 	T1 extends object,
 	T2 extends object,
-	D1 extends Exclude<keyof T1, keyof T2>,
-	D2 extends Exclude<keyof T2, keyof T1>,
+	D1 extends ExclusiveKeys<T1, T2>,
+	D2 extends ExclusiveKeys<T2, T1>,
 >(pairs: [T1 | T2, T1 | T2][], discriminatorA: D1, discriminatorB: D2) {
 	return pairs.map(([a, b]) => {
 		const differences = [] as (keyof (T1 | T2))[];
@@ -75,10 +76,6 @@ function diffPairs<
 			KeyValue<D2, T2>;
 	});
 }
-
-type KeyValue<D extends string | number | symbol, T> = {
-	[key in D]: T;
-};
 
 function findPairs<T>(
 	a: T[],

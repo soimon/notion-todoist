@@ -1,8 +1,8 @@
 import {NotionProjectRepository} from '@project/notion/repositories/projects';
 import {TodoistProjectRepository} from '@project/todoist/repositories/projects';
-import {ProjectSyncStrategy} from './strategies';
+import {ProjectSyncStrategy, ProjectSyncer} from '@project/types';
 
-export class ProjectSyncService {
+export class RepositoryProjectSyncer implements ProjectSyncer {
 	constructor(
 		private notionRepository: NotionProjectRepository,
 		private todoistRepository: TodoistProjectRepository

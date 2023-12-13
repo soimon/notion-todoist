@@ -1,11 +1,12 @@
 require('module-alias/register');
 import {TodoistApi} from '@doist/todoist-api-typescript';
 import {Client} from '@notionhq/client';
+import {makeProjectSyncStrategy} from '@project/strategies/prefer-notion';
+import {ProjectSyncLogger} from '@project/syncers/logger';
 import dotenv from 'dotenv';
-import {ProjectSyncService} from './framework/sync/project-sync-service';
-import {makeProjectSyncStrategy} from './framework/sync/strategies';
 import {log} from './framework/utils/dev';
 import {NotionProjectRepository} from './project/notion/repositories/projects';
+import {RepositoryProjectSyncer} from './project/syncers/repository';
 import {TodoistProjectRepository} from './project/todoist/repositories/projects';
 dotenv.config();
 
@@ -42,13 +43,13 @@ async function main() {
 		notionProjects,
 		todoistProjects
 	);
-	const projectSyncer = new ProjectSyncService(
-		notionProjectsRepo,
-		todoistProjectsRepo
+	const projectSyncer = new ProjectSyncLogger(
+		new RepositoryProjectSyncer(notionProjectsRepo, todoistProjectsRepo)
 	);
 	log('notion-projects', notionProjects);
 	log('todoist-projects', todoistProjects);
 	log('strategy-project', projectStrategy);
+
 	projectSyncer.sync(projectStrategy);
 
 	// const todoistTasks = new TodoistTaskRepository(todoist);
@@ -122,8 +123,6 @@ async function main() {
 	// 	});
 	// 	await notionTasks.linkWithTodoist(t.notionId, todoistId);
 	// });
-
-	console.log('Done');
 }
 
 main();

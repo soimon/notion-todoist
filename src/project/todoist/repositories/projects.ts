@@ -47,7 +47,9 @@ export class TodoistProjectRepository {
 
 	// Altering
 
-	async addProject(project: Project): Promise<string> {
+	async addProject(
+		project: Pick<Project, 'name' | 'isBlocked'>
+	): Promise<string> {
 		const {id} = await this.api.addProject({
 			parentId: process.env.TODOIST_PROJECT_ROOT,
 			name: applyLockInfo(project.name, project.isBlocked),
@@ -56,11 +58,13 @@ export class TodoistProjectRepository {
 		return id;
 	}
 
-	async removeProject({syncId}: Project): Promise<boolean> {
+	async removeProject({syncId}: Pick<Project, 'syncId'>): Promise<boolean> {
 		return this.api.deleteProject(syncId);
 	}
 
-	async updateProject(project: Project): Promise<void> {
+	async updateProject(
+		project: Pick<Project, 'syncId' | 'name' | 'isBlocked'>
+	): Promise<void> {
 		await this.api.updateProject(project.syncId, {
 			name: applyLockInfo(project.name, project.isBlocked),
 		});
