@@ -1,12 +1,18 @@
+import {GoalSyncStrategy} from '@framework/sync';
 import {diffProjects, isNotion, isTodoist} from './utils';
-import {NotionProject} from '@project/notion/models';
-import {TodoistProject} from '@project/todoist/models';
-import {ProjectSyncStrategy} from '@project/types';
+import {NotionGoal, NotionProject} from '@project/notion/models';
+import {TodoistGoal, TodoistProject} from '@project/todoist/models';
+import {
+	GoalSyncStrategizer,
+	ProjectSyncStrategizer,
+	ProjectSyncStrategy,
+} from '@project/types';
 
-export function makeProjectSyncStrategy(
+export const preferNotionProjectStrategy: ProjectSyncStrategizer = (
 	notion: NotionProject[],
-	todoist: TodoistProject[]
-): ProjectSyncStrategy {
+	todoist: TodoistProject[],
+	goalStrategy: GoalSyncStrategizer = preferNotionGoalStrategy
+): ProjectSyncStrategy => {
 	const diff = diffProjects(notion, todoist);
 	return {
 		notion: {add: [], remove: [], update: []},
@@ -15,7 +21,17 @@ export function makeProjectSyncStrategy(
 			remove: diff.loners.filter(isTodoist),
 			update: diff.pairs
 				.filter(p => p.differences.length)
-				.map(p => ({...p.notion, goals: {add: [], remove: [], update: []}})),
+				.map(p => ({
+					...p.notion,
+					goals: goalStrategy(p.notion.goals, p.todoist.goals),
+				})),
 		},
 	};
-}
+};
+
+export const preferNotionGoalStrategy: GoalSyncStrategizer = (
+	notion: NotionGoal[],
+	todoist: TodoistGoal[]
+): GoalSyncStrategy => {
+	return {add: [], remove: [], update: []};
+};
