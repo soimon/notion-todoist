@@ -8,10 +8,10 @@ import {
 	ProjectSyncStrategy,
 } from '@project/types';
 
-export const preferNotionProjectStrategy: ProjectSyncStrategizer = (
+export const followNotionProjectStrategy: ProjectSyncStrategizer = (
 	notion: NotionProject[],
 	todoist: TodoistProject[],
-	goalStrategy: GoalSyncStrategizer = preferNotionGoalStrategy
+	goalStrategy: GoalSyncStrategizer = followNotionGoalStrategy
 ): ProjectSyncStrategy => {
 	const diff = diffProjects(notion, todoist);
 	return {
@@ -29,9 +29,10 @@ export const preferNotionProjectStrategy: ProjectSyncStrategizer = (
 	};
 };
 
-export const preferNotionGoalStrategy: GoalSyncStrategizer = (
+export const followNotionGoalStrategy: GoalSyncStrategizer = (
 	notion: NotionGoal[],
 	todoist: TodoistGoal[]
 ): GoalSyncStrategy => {
+	console.log(notion, todoist);
 	return {add: [], remove: [], update: []};
 };

@@ -1,7 +1,7 @@
 require('module-alias/register');
 import {TodoistApi} from '@doist/todoist-api-typescript';
 import {Client} from '@notionhq/client';
-import {preferNotionProjectStrategy} from '@project/strategies/prefer-notion';
+import {followNotionProjectStrategy} from '@project/strategies/follow-notion';
 import {ProjectSyncLogger} from '@project/syncers/logger';
 import dotenv from 'dotenv';
 import {log} from './framework/utils/dev';
@@ -39,7 +39,7 @@ async function main() {
 
 	const notionProjects = await notionProjectsRepo.getProjects();
 	const todoistProjects = await todoistProjectsRepo.getProjects();
-	const projectStrategy = preferNotionProjectStrategy(
+	const projectStrategy = followNotionProjectStrategy(
 		notionProjects,
 		todoistProjects
 	);
