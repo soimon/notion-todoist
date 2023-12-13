@@ -1,5 +1,9 @@
 import {ProjectSyncStrategy, ProjectSyncer} from '@project/types';
 
+const TAB_PREFIX = '\u2192  ';
+const PROJECT_PREFIX = `${TAB_PREFIX}📦 `;
+const GOAL_PREFIX = `${TAB_PREFIX}🎯 `;
+
 export class ProjectSyncLogger implements ProjectSyncer {
 	constructor(private syncer: ProjectSyncer) {}
 
@@ -11,23 +15,39 @@ export class ProjectSyncLogger implements ProjectSyncer {
 
 	private log(strategy: ProjectSyncStrategy) {
 		const {notion, todoist} = strategy;
-		const notionGoals = this.countGoalMutations(notion);
-		const todoistGoals = this.countGoalMutations(todoist);
+		this.logPlatform('Notion', notion);
+		this.logPlatform('Todoist', todoist);
+	}
 
-		console.log(`Notion:`);
-		console.log(`   📦 Added    ${notion.add.length}  projects`);
-		console.log(`   📦 Removed  ${notion.remove.length}  projects`);
-		console.log(`   📦 Updated  ${notion.update.length}  projects`);
-		console.log(`   🎯 Added    ${notionGoals.added}  goals`);
-		console.log(`   🎯 Removed  ${notionGoals.removed}  goals`);
-		console.log(`   🎯 Updated  ${notionGoals.updated}  goals`);
-		console.log(`Todoist:`);
-		console.log(`   📦 Added    ${todoist.add.length}  projects`);
-		console.log(`   📦 Removed  ${todoist.remove.length}  projects`);
-		console.log(`   📦 Updated  ${todoist.update.length}  projects`);
-		console.log(`   🎯 Added    ${todoistGoals.added}  goals`);
-		console.log(`   🎯 Removed  ${todoistGoals.removed}  goals`);
-		console.log(`   🎯 Updated  ${todoistGoals.updated}  goals`);
+	private logPlatform(
+		platform: string,
+		strategy: ProjectSyncStrategy['notion' | 'todoist']
+	) {
+		const {add, remove, update} = strategy;
+		console.log(`${platform}:`);
+		if (add.length + remove.length + update.length === 0)
+			console.log(`${TAB_PREFIX}No changes`);
+		this.logProjects(strategy);
+		this.logGoals(strategy);
+	}
+
+	private logProjects(strategy: ProjectSyncStrategy['notion' | 'todoist']) {
+		const {add, remove, update} = strategy;
+		if (add.length + remove.length + update.length > 0)
+			console.log(`${TAB_PREFIX}Projects`);
+		if (add.length > 0) console.log(`${PROJECT_PREFIX}Added    ${add.length}`);
+		if (remove.length > 0)
+			console.log(`${PROJECT_PREFIX}📦 Removed  ${remove.length}`);
+		if (update.length > 0)
+			console.log(`${PROJECT_PREFIX}📦 Updated  ${update.length}`);
+	}
+
+	private logGoals(strategy: ProjectSyncStrategy['notion' | 'todoist']) {
+		const {added, removed, updated} = this.countGoalMutations(strategy);
+		if (added + removed + updated > 0) console.log(`${TAB_PREFIX}Goals`);
+		if (added > 0) console.log(`${GOAL_PREFIX}Added    ${added}`);
+		if (removed > 0) console.log(`${GOAL_PREFIX}Removed  ${removed}`);
+		if (updated > 0) console.log(`${GOAL_PREFIX}Updated  ${updated}`);
 	}
 
 	private countGoalMutations(
