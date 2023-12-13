@@ -1,18 +1,11 @@
-import {GoalSyncStrategy} from '@framework/sync';
+import {GoalSyncStrategizer, ProjectSyncStrategizer} from '@project/types';
 import {diffProjects, isNotion, isTodoist} from './utils';
-import {NotionGoal, NotionProject} from '@project/notion/models';
-import {TodoistGoal, TodoistProject} from '@project/todoist/models';
-import {
-	GoalSyncStrategizer,
-	ProjectSyncStrategizer,
-	ProjectSyncStrategy,
-} from '@project/types';
 
 export const followNotionProjectStrategy: ProjectSyncStrategizer = (
-	notion: NotionProject[],
-	todoist: TodoistProject[],
-	goalStrategy: GoalSyncStrategizer = followNotionGoalStrategy
-): ProjectSyncStrategy => {
+	notion,
+	todoist,
+	goalStrategy = followNotionGoalStrategy
+) => {
 	const diff = diffProjects(notion, todoist);
 	return {
 		notion: {add: [], remove: [], update: []},
@@ -30,9 +23,9 @@ export const followNotionProjectStrategy: ProjectSyncStrategizer = (
 };
 
 export const followNotionGoalStrategy: GoalSyncStrategizer = (
-	notion: NotionGoal[],
-	todoist: TodoistGoal[]
-): GoalSyncStrategy => {
+	notion,
+	todoist
+) => {
 	console.log(notion, todoist);
 	return {add: [], remove: [], update: []};
 };
