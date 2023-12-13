@@ -1,4 +1,4 @@
-import {Goal, Project, Task} from '../models';
+import {Goal, Project, Task} from '@framework/models';
 
 export type TodoistTask = Task & {
 	todoist: {

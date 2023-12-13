@@ -1,5 +1,5 @@
-import {NotionProjectRepository} from '../repositories/notion/projects';
-import {TodoistProjectRepository} from '../repositories/todoist/projects';
+import {NotionProjectRepository} from '@project/notion/repositories/projects';
+import {TodoistProjectRepository} from '@project/todoist/repositories/projects';
 import {ProjectSyncStrategy} from './strategies';
 
 export class ProjectSyncService {

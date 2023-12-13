@@ -1,4 +1,4 @@
-import {defineSchema} from '../../wrappers/notion';
+import {defineSchema} from '@lib/notion';
 
 export const projectSchema = defineSchema({
 	name: {type: 'title', id: 'title'},

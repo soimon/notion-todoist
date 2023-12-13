@@ -9,7 +9,8 @@
 		"clean": "gts clean",
 		"compile": "tsc",
 		"fix": "gts fix",
-		"watch": "tsc-watch --onSuccess \"node . --no-print-code\""
+		"run": "node --no-print-code .",
+		"watch": "tsc-watch --onSuccess \"npm run run\""
 	},
 	"author": "soimon",
 	"license": "ISC",
@@ -28,6 +29,12 @@
 		"@doist/todoist-api-typescript": "^3.0.1",
 		"@notionhq/client": "^2.2.14",
 		"dotenv": "^16.3.1",
+		"module-alias": "^2.2.3",
 		"object.groupby": "^1.0.1"
+	},
+	"_moduleAliases": {
+		"@framework": "build/src/framework",
+		"@project": "build/src/project",
+		"@lib": "build/src/lib"
 	}
 }

@@ -1,11 +1,12 @@
+require('module-alias/register');
 import {TodoistApi} from '@doist/todoist-api-typescript';
 import {Client} from '@notionhq/client';
 import dotenv from 'dotenv';
-import {NotionProjectRepository} from './repositories/notion/projects';
-import {TodoistProjectRepository} from './repositories/todoist/projects';
-import {cacheResult, log} from './utils/dev';
-import {makeProjectSyncStrategy} from './sync/strategies';
-import {ProjectSyncService} from './sync/project-sync-service';
+import {ProjectSyncService} from './framework/sync/project-sync-service';
+import {makeProjectSyncStrategy} from './framework/sync/strategies';
+import {log} from './framework/utils/dev';
+import {NotionProjectRepository} from './project/notion/repositories/projects';
+import {TodoistProjectRepository} from './project/todoist/repositories/projects';
 dotenv.config();
 
 async function main() {
@@ -45,6 +46,8 @@ async function main() {
 		notionProjectsRepo,
 		todoistProjectsRepo
 	);
+	log('notion-projects', notionProjects);
+	log('todoist-projects', todoistProjects);
 	log('strategy-project', projectStrategy);
 	projectSyncer.sync(projectStrategy);
 

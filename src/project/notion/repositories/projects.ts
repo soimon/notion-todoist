@@ -1,8 +1,8 @@
 import {Client} from '@notionhq/client';
 import groupBy from 'object.groupby';
-import {QueryFilters, queryDatabase} from '../../wrappers/notion';
-import {NotionGoal, NotionProject} from './model';
+import {NotionGoal, NotionProject} from '../models';
 import {goalSchema, projectSchema} from './schemas';
+import {QueryFilters, queryDatabase} from '@lib/notion';
 
 // TODO: Move all magic constants to business logic
 

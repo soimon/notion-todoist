@@ -1,5 +1,5 @@
-import {NotionPage} from '../../wrappers/notion';
-import {Goal, Project, Task} from '../models';
+import {Goal, Project, Task} from '@framework/models';
+import {NotionPage} from '@lib/notion';
 
 export type NotionTask = Task & {
 	notion: {

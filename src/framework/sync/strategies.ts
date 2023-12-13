@@ -1,11 +1,11 @@
-import {Project} from '../repositories/models';
-import {NotionProject} from '../repositories/notion/model';
-import {TodoistProject} from '../repositories/todoist/model';
+import {NotionProject} from '@project/notion/models';
+import {TodoistProject} from '@project/todoist/models';
+import {Project} from '../models';
 import {diff} from '../utils/diffing';
 
 export type ProjectSyncStrategy = {
 	notion: {
-		add: Project[];
+		add: TodoistProject[];
 		remove: Project[];
 		update: Project[];
 	};

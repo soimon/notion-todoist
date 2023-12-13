@@ -1,7 +1,7 @@
 import {TodoistApi} from '@doist/todoist-api-typescript';
-import {TodoistGoal, TodoistProject} from './model';
+import {TodoistGoal, TodoistProject} from '../models';
 import groupBy from 'object.groupby';
-import {Project} from '../models';
+import {Project} from '@framework/models';
 
 export class TodoistProjectRepository {
 	constructor(
@@ -17,7 +17,7 @@ export class TodoistProjectRepository {
 			groupBy(g, ({todoist}) => todoist.projectId)
 		);
 		return projects.map(
-			({id, name}): TodoistProject => ({
+			({name, id}): TodoistProject => ({
 				syncId: id,
 				...extractNameAndBlocked(name),
 				goals: goals[id] ?? [],
