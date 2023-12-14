@@ -10,8 +10,6 @@ import {
 import {goalSchema, projectSchema} from './schemas';
 import {QueryFilters, queryDatabase} from '@lib/notion';
 
-// TODO: Move all magic constants to business logic
-
 export class NotionProjectRepository {
 	constructor(
 		private api: Client,
