@@ -24,7 +24,7 @@ export type TaskSyncStrategy<
 export type GoalSyncStrategy<G extends Goal> = {
 	add: G[];
 	remove: Goal[];
-	update: Goal[];
+	update: G[];
 	onlySyncGoals?: boolean;
 };
 
@@ -45,7 +45,7 @@ type PlatformTaskSyncStrategy<T1 extends Task, T2 extends Task> = KeyValue<
 	ExclusiveKeys<T1, T2>,
 	{
 		add: T2[];
-		remove: Task[];
-		update: Task[];
+		remove: T1[];
+		update: T2[];
 	}
 >;

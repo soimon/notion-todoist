@@ -6,13 +6,14 @@ import {NotionPage} from '@lib/notion';
 export type NotionTask = Task & {
 	notion: {
 		id: NotionPage<{}>['id'];
+		goalId: NotionPage<{}>['id'];
 		lastEdited: Date;
 		projectName: string;
 		status: string;
 	};
 };
 
-export type NotionProject = Project & {
+export type NotionProject = Omit<Project, 'goals'> & {
 	goals: NotionGoal[];
 	notion: {
 		id: string;

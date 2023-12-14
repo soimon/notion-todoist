@@ -19,10 +19,11 @@ import {log} from './framework/utils/dev';
 import {NotionProjectRepository} from './project/notion/repositories/projects';
 import {RepositorySyncer} from './project/syncers/repository';
 import {TodoistProjectRepository} from './project/todoist/repositories/projects';
+import {TodoistSyncApi} from '@lib/todoist';
 dotenv.config();
 console.clear();
 
-const SYNC_PROJECTS = false;
+const SYNC_PROJECTS = true;
 const SYNC_TASKS = true;
 
 async function main() {
@@ -30,7 +31,7 @@ async function main() {
 
 	console.log('Connecting to apis...');
 	console.time('Elapsed');
-	const {notion, todoist} = createRepositories();
+	const {notion, todoist, todoistSyncApi} = createRepositories();
 	console.timeEnd('Elapsed');
 
 	console.log('\nFetching data...');
@@ -50,16 +51,26 @@ async function main() {
 
 	// Sync projects
 
-	sync({projects: projectStrategy, tasks: taskStrategy}, notion, todoist);
+	sync(
+		{projects: projectStrategy, tasks: taskStrategy},
+		notion,
+		todoist,
+		todoistSyncApi
+	);
 }
 
 main();
 
-function createRepositories(): {notion: NotionRepos; todoist: TodoistRepos} {
+function createRepositories(): {
+	notion: NotionRepos;
+	todoist: TodoistRepos;
+	todoistSyncApi: TodoistSyncApi;
+} {
 	const notionApi = new Client({
 		auth: process.env.NOTION_TOKEN,
 	});
 	const todoistApi = new TodoistApi(process.env.TODOIST_TOKEN);
+	const todoistSyncApi = new TodoistSyncApi(process.env.TODOIST_TOKEN);
 
 	return {
 		notion: {
@@ -73,10 +84,12 @@ function createRepositories(): {notion: NotionRepos; todoist: TodoistRepos} {
 		todoist: {
 			projects: new TodoistProjectRepository(
 				todoistApi,
+				todoistSyncApi,
 				process.env.TODOIST_PROJECT_ROOT
 			),
-			tasks: new TodoistTaskRepository(todoistApi),
+			tasks: new TodoistTaskRepository(todoistApi, todoistSyncApi),
 		},
+		todoistSyncApi: todoistSyncApi,
 	};
 }
 
@@ -95,11 +108,14 @@ async function fetchTodoist({projects, tasks}: TodoistRepos) {
 function sync(
 	strategies: SyncStrategy,
 	notion: NotionRepos,
-	todoist: TodoistRepos
+	todoist: TodoistRepos,
+	todoistSyncApi: TodoistSyncApi
 ) {
 	log('strategy-projects', strategies.projects);
 	log('strategy-tasks', strategies.tasks);
 
-	const syncer = new SyncLogger(new RepositorySyncer(notion, todoist));
+	const syncer = new SyncLogger(
+		new RepositorySyncer(notion, todoist, todoistSyncApi)
+	);
 	syncer.sync(strategies);
 }

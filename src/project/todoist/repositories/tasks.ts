@@ -1,14 +1,15 @@
 import {TodoistApi} from '@doist/todoist-api-typescript';
-import {TodoistProject, TodoistTask} from '../models';
-import {with404Check} from './utils';
 import {Task} from '@framework/models';
-import {v4 as uuidv4} from 'uuid';
-import fetch from 'node-fetch';
+import {TemporaryId, TodoistSyncApi} from '@lib/todoist';
+import {TodoistProject, TodoistTask} from '../models';
 
 // Repository for Todoist tasks.
 
 export class TodoistTaskRepository {
-	constructor(private api: TodoistApi) {}
+	constructor(
+		private api: TodoistApi,
+		private syncApi: TodoistSyncApi
+	) {}
 
 	// Fetching
 
@@ -46,62 +47,27 @@ export class TodoistTaskRepository {
 
 	// Altering
 
-	async add(task: Task): Promise<string> {
-		const {id} = await this.api.addTask({
+	add(task: Task): TemporaryId {
+		return this.syncApi.addTask({
 			content: task.content,
 			dueDate: makeDueString(task.scheduled),
 			sectionId: task.goalSyncId,
 		});
-		return id;
 	}
 
-	async update(newState: Task): Promise<boolean> {
-		const {wasFound} = await with404Check(
-			(async () => {
-				const id = newState.syncId;
-				const {isCompleted: wasCompleted, sectionId} =
-					await this.api.updateTask(id, {
-						content: newState.content,
-						dueDate: makeDueString(newState.scheduled),
-					});
-				const shouldChangeCompletion =
-					newState.isCompleted !== undefined &&
-					wasCompleted !== newState.isCompleted;
-				if (shouldChangeCompletion) {
-					if (newState.isCompleted) await this.api.closeTask(id);
-					else await this.api.reopenTask(id);
-				}
-				const shouldMove = newState.goalSyncId !== sectionId;
-				if (shouldMove) await this.moveTask(id, newState.goalSyncId);
-			})()
-		);
-		return wasFound;
-	}
-
-	private async moveTask(id: string, sectionId: string) {
-		const url = 'https://api.todoist.com/sync/v9/sync';
-		const headers = {
-			Authorization: `Bearer ${process.env.TODOIST_TOKEN}`,
-			'Content-Type': 'application/json',
-		};
-		const data = {
-			commands: [
-				{
-					type: 'item_move',
-					uuid: uuidv4(),
-					args: {id, section_id: sectionId},
-				},
-			],
-		};
-		await fetch(url, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify(data),
+	update(newState: Task): void {
+		const id = newState.syncId;
+		this.syncApi.updateTask(id, {
+			content: newState.content,
+			dueDate: makeDueString(newState.scheduled),
 		});
+		if (newState.isCompleted) this.syncApi.closeTask(id);
+		else this.syncApi.reopenTask(id);
+		this.syncApi.moveTask(id, newState.goalSyncId);
 	}
 
-	async remove(task: Pick<Task, 'syncId'>): Promise<boolean> {
-		return await this.api.deleteTask(task.syncId);
+	remove(task: Pick<Task, 'syncId'>): void {
+		this.syncApi.deleteTask(task.syncId);
 	}
 }
 

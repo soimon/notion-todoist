@@ -1,16 +1,19 @@
 import {TodoistApi} from '@doist/todoist-api-typescript';
-import {TodoistGoal, TodoistProject} from '../models';
+import {Goal, Project} from '@framework/models';
+import {TemporaryId, TodoistSyncApi} from '@lib/todoist';
 import groupBy from 'object.groupby';
-import {Project} from '@framework/models';
-import {with404Check} from './utils';
+import {TodoistGoal, TodoistProject} from '../models';
 
 export class TodoistProjectRepository {
 	constructor(
 		private api: TodoistApi,
+		private syncApi: TodoistSyncApi,
 		private rootProject: string
 	) {}
 
+	//-------------------------------------------------------------------------
 	// Fetching
+	//-------------------------------------------------------------------------
 
 	async getProjects(): Promise<TodoistProject[]> {
 		const projects = await this.fetchProjects();
@@ -46,67 +49,48 @@ export class TodoistProjectRepository {
 			.then(p => p.filter(p => p.parentId === this.rootProject));
 	}
 
+	//-------------------------------------------------------------------------
 	// Altering
+	//-------------------------------------------------------------------------
 
-	async addProject(
-		project: Pick<Project, 'name' | 'isBlocked'>
-	): Promise<string> {
-		const {id} = await this.api.addProject({
+	addProject(project: Pick<Project, 'name' | 'isBlocked'>): TemporaryId {
+		return this.syncApi.addProject({
 			parentId: process.env.TODOIST_PROJECT_ROOT,
 			name: applyLockInfo(project.name, project.isBlocked),
 			viewStyle: 'board',
 		});
-		return id;
 	}
 
-	async removeProject({syncId}: Pick<Project, 'syncId'>): Promise<boolean> {
-		return this.api.deleteProject(syncId);
+	removeProject({syncId}: Pick<Project, 'syncId'>): void {
+		this.syncApi.deleteProject(syncId);
 	}
 
-	async updateProject(
-		project: Pick<Project, 'syncId' | 'name' | 'isBlocked'>
-	): Promise<void> {
-		await with404Check(
-			this.api.updateProject(project.syncId, {
-				name: applyLockInfo(project.name, project.isBlocked),
-			})
-		);
+	updateProject(project: Pick<Project, 'syncId' | 'name' | 'isBlocked'>): void {
+		this.syncApi.updateProject(project.syncId, {
+			name: applyLockInfo(project.name, project.isBlocked),
+		});
 	}
 
-	async addGoal(
-		goal: Pick<Project, 'name' | 'isBlocked'>,
+	addGoal(
+		goal: Pick<Goal, 'name' | 'isBlocked'>,
 		projectId: string
-	): Promise<string> {
-		const {id} = await this.api.addSection({
+	): TemporaryId {
+		return this.syncApi.addSection({
 			projectId,
 			name: applyLockInfo(goal.name, goal.isBlocked),
 		});
-		return id;
 	}
 
-	async removeGoal({syncId}: Pick<Project, 'syncId'>): Promise<boolean> {
-		return this.api.deleteSection(syncId);
+	removeGoal({syncId}: Pick<Goal, 'syncId'>): void {
+		this.syncApi.deleteSection(syncId);
 	}
 
-	async updateGoal(
-		goal: Pick<Project, 'syncId' | 'name' | 'isBlocked'>
-	): Promise<void> {
-		await with404Check(
-			this.api.updateSection(goal.syncId, {
-				name: applyLockInfo(goal.name, goal.isBlocked),
-			})
-		);
-	}
-
-	/**
-	 * Deletes all projects.
-	 */
-
-	async deleteAllProjects() {
-		const projects = await this.fetchProjects();
-		for (const project of projects) {
-			await this.api.deleteProject(project.id);
-		}
+	updateGoal(goal: Pick<Goal, 'syncId' | 'name' | 'isBlocked'>): void {
+		this.syncApi.updateSection(goal.syncId, {
+			name: applyLockInfo(goal.name, goal.isBlocked),
+		});
+		// TODO: Implement moving
+		// this.syncApi.moveSection(goal.syncId, )
 	}
 }
 

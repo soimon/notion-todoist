@@ -1,3 +1,5 @@
+import {TemporaryId, TodoistSyncApi} from '@lib/todoist';
+import {NotionGoal, NotionProject, NotionTask} from '@project/notion/models';
 import {NotionTaskRepository} from '@project/notion/repositories';
 import {NotionProjectRepository} from '@project/notion/repositories/projects';
 import {TodoistTaskRepository} from '@project/todoist/repositories';
@@ -12,7 +14,8 @@ import {
 export class RepositorySyncer implements Syncer {
 	constructor(
 		private notion: NotionRepos,
-		private todoist: TodoistRepos
+		private todoist: TodoistRepos,
+		private todoistSyncApi: TodoistSyncApi
 	) {}
 
 	async sync({projects, tasks}: SyncStrategy) {
@@ -29,57 +32,65 @@ export class RepositorySyncer implements Syncer {
 		projects: ProjectSyncStrategy['todoist'],
 		tasks: TaskSyncStrategy['todoist']
 	) {
-		const projectsRepo = this.todoist.projects;
-		const tasksRepo = this.todoist.tasks;
+		const [p, t] = [this.todoist.projects, this.todoist.tasks];
+		const idMapping: Record<
+			TemporaryId,
+			NotionProject | NotionGoal | NotionTask
+		> = {};
+		const goalIdMapping: Record<NotionGoal['notion']['id'], TemporaryId> = {};
 
-		// Add projects
+		// Projects
 
 		for (const project of projects.add) {
-			const id = await projectsRepo.addProject(project);
-			await this.notion.projects.linkProject(project, id);
+			const tempId = p.addProject(project);
+			idMapping[tempId] = project;
+			for (const goal of project.goals) {
+				const tempGoalId = p.addGoal(goal, tempId);
+				goalIdMapping[goal.notion.id] = tempGoalId;
+				idMapping[tempGoalId] = goal;
+			}
 		}
 
-		// Remove projects
-
-		for (const project of projects.remove)
-			await projectsRepo.removeProject(project);
-
-		// Update projects or goals
-
+		for (const project of projects.remove) p.removeProject(project);
 		for (const project of projects.update) {
-			// Update the project (if it's not just a goal sync)
-			if (!project.goals.onlySyncGoals)
-				await projectsRepo.updateProject(project);
+			if (!project.goals.onlySyncGoals) p.updateProject(project);
 
-			// Add goals
+			// Goals
 
 			for (const goal of project.goals.add) {
-				const id = await projectsRepo.addGoal(goal, project.syncId);
-				await this.notion.projects.linkGoal(goal, id);
+				const tempId = p.addGoal(goal, project.syncId);
+				goalIdMapping[goal.notion.id] = tempId;
+				idMapping[tempId] = goal;
 			}
-
-			// Remove goals
-
-			for (const goal of project.goals.remove)
-				await projectsRepo.removeGoal(goal);
-
-			// Update goals
-			for (const goal of project.goals.update)
-				await projectsRepo.updateGoal(goal);
+			for (const goal of project.goals.remove) p.removeGoal(goal);
+			for (const goal of project.goals.update) p.updateGoal(goal);
 		}
 
-		// Add tasks
+		// Tasks
 
-		for (const task of tasks.add) {
-			const id = await tasksRepo.add(task);
-			await this.notion.tasks.link(task, id);
+		for (const task of remapGoals(tasks.add)) idMapping[t.add(task)] = task;
+		for (const task of remapGoals(tasks.update)) t.update(task);
+		for (const task of tasks.remove) t.remove(task);
+
+		function remapGoals(tasks: NotionTask[]) {
+			return tasks.map(t => ({
+				...t,
+				goalSyncId: goalIdMapping[t.notion.goalId] ?? t.goalSyncId,
+			}));
 		}
 
-		// Remove tasks
-		for (const task of tasks.remove) await tasksRepo.remove(task);
+		// Linking
 
-		// Update tasks
-		for (const task of tasks.update) await tasksRepo.update(task);
+		const syncIds = await this.todoistSyncApi.commit();
+		if (syncIds)
+			for (const [temp, syncId] of syncIds) {
+				const item = idMapping[temp];
+				if (!item) continue;
+				if ('content' in item) await this.notion.tasks.link(item, syncId);
+				else if ('goals' in item)
+					await this.notion.projects.linkProject(item, syncId);
+				else await this.notion.projects.linkGoal(item, syncId);
+			}
 	}
 }
 

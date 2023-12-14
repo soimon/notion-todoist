@@ -102,6 +102,7 @@ const rowToModel = ({
 	isCompleted: closedTaskStates.includes(p.status?.status?.name ?? ''),
 	notion: {
 		id,
+		goalId: p.goal?.relation[0]?.id ?? '',
 		lastEdited: new Date(last_edited_time ?? created_time),
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		projectName: (p.project?.formula as any)?.string ?? '',
