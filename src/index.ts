@@ -1,17 +1,25 @@
 require('module-alias/register');
 import {TodoistApi} from '@doist/todoist-api-typescript';
 import {Client} from '@notionhq/client';
+import {NotionTaskRepository} from '@project/notion/repositories';
+import {
+	doNothingProjectStrategy,
+	doNothingTaskStrategy,
+} from '@project/strategies/do-nothing';
 import {followNotionProjectStrategy} from '@project/strategies/follow-notion';
-import {ProjectSyncLogger} from '@project/syncers/logger';
+import {SyncLogger} from '@project/syncers/logger';
+import {TodoistTaskRepository} from '@project/todoist/repositories';
+import {
+	ProjectSyncStrategy,
+	SyncStrategy,
+	TaskSyncStrategy,
+} from '@project/types';
 import dotenv from 'dotenv';
 import {log} from './framework/utils/dev';
 import {NotionProjectRepository} from './project/notion/repositories/projects';
-import {RepositoryProjectSyncer} from './project/syncers/repository';
+import {RepositorySyncer} from './project/syncers/repository';
 import {TodoistProjectRepository} from './project/todoist/repositories/projects';
-import {NotionProject} from 'c:/Users/simon/Projects/Lifehacks/integrations/notion-todoist/src/project/notion/models/index';
-import {TodoistProject} from '@project/todoist/models';
-import {TodoistTaskRepository} from '@project/todoist/repositories';
-import {NotionTaskRepository} from '@project/notion/repositories';
+import {NotionRepos, TodoistRepos} from '@project/syncers/repository';
 dotenv.config();
 console.clear();
 
@@ -23,36 +31,21 @@ async function main() {
 
 	// Get data from repositories
 
-	const {
-		notionProjectsRepo,
-		todoistProjectsRepo,
-		notionTasksRepo,
-		todoistTasksRepo,
-	} = createRepositories();
+	const {notion, todoist} = createRepositories();
 	const [{notionProjects, notionTasks}, {todoistProjects, todoistTasks}] =
-		await Promise.all([
-			fetchNotion(notionProjectsRepo, notionTasksRepo),
-			fetchTodoist(todoistProjectsRepo, todoistTasksRepo),
-		]);
+		await Promise.all([fetchNotion(notion), fetchTodoist(todoist)]);
 	console.timeEnd('Elapsed');
+
+	// Determine stategies
+
+	const projectStrategy = SYNC_PROJECTS
+		? doNothingProjectStrategy(notionProjects, todoistProjects)
+		: followNotionProjectStrategy(notionProjects, todoistProjects);
+	const taskStrategy = doNothingTaskStrategy(notionTasks, todoistTasks);
 
 	// Sync projects
 
-	if (SYNC_PROJECTS) {
-		// syncProjects(
-		// 	{notion: notionProjects, todoist: todoistProjects},
-		// 	{notion: notionProjectsRepo, todoist: todoistProjectsRepo}
-		// );
-	}
-
-	// Sync tasks
-	log('tasks', {notion: notionTasks, todoist: todoistTasks});
-
-	// const todoistTasks = new TodoistTaskRepository(todoist);
-	// const notionTasks = new NotionTaskRepository(
-	// 	notion,
-	// 	process.env.NOTION_DB_TASKS
-	// );
+	sync({projects: projectStrategy, tasks: taskStrategy}, notion, todoist);
 
 	// Fetch notion tasks
 	// TODO: Get all potentially out of sync candidates from the Notion side
@@ -105,69 +98,51 @@ async function main() {
 
 main();
 
-function createRepositories() {
-	// Connect to apis
-
-	const notion = new Client({
+function createRepositories(): {notion: NotionRepos; todoist: TodoistRepos} {
+	const notionApi = new Client({
 		auth: process.env.NOTION_TOKEN,
 	});
-	const todoist = new TodoistApi(process.env.TODOIST_TOKEN);
-
-	// Create repositories
-
-	const todoistProjectsRepo = new TodoistProjectRepository(
-		todoist,
-		process.env.TODOIST_PROJECT_ROOT
-	);
-	const notionProjectsRepo = new NotionProjectRepository(
-		notion,
-		process.env.NOTION_DB_PROJECTS,
-		process.env.NOTION_DB_GOALS
-	);
-	const notionTasksRepo = new NotionTaskRepository(
-		notion,
-		process.env.NOTION_DB_TASKS
-	);
-	const todoistTasksRepo = new TodoistTaskRepository(todoist);
+	const todoistApi = new TodoistApi(process.env.TODOIST_TOKEN);
 
 	return {
-		notionProjectsRepo,
-		todoistProjectsRepo,
-		notionTasksRepo,
-		todoistTasksRepo,
+		notion: {
+			projects: new NotionProjectRepository(
+				notionApi,
+				process.env.NOTION_DB_PROJECTS,
+				process.env.NOTION_DB_GOALS
+			),
+			tasks: new NotionTaskRepository(notionApi, process.env.NOTION_DB_TASKS),
+		},
+		todoist: {
+			projects: new TodoistProjectRepository(
+				todoistApi,
+				process.env.TODOIST_PROJECT_ROOT
+			),
+			tasks: new TodoistTaskRepository(todoistApi),
+		},
 	};
 }
 
-async function fetchTodoist(
-	projects: TodoistProjectRepository,
-	tasks: TodoistTaskRepository
-) {
-	const todoistProjects = await projects.getProjects();
-	const todoistTasks = await tasks.getSyncCandidates(todoistProjects);
-	return {todoistProjects, todoistTasks};
-}
-
-async function fetchNotion(
-	projects: NotionProjectRepository,
-	tasks: NotionTaskRepository
-) {
+async function fetchNotion({projects, tasks}: NotionRepos) {
 	const notionProjects = await projects.getProjects();
 	const notionTasks = await tasks.getSyncCandidates(new Date());
 	return {notionProjects, notionTasks};
 }
 
-function syncProjects(
-	projects: {notion: NotionProject[]; todoist: TodoistProject[]},
-	repos: {notion: NotionProjectRepository; todoist: TodoistProjectRepository}
-) {
-	const projectStrategy = followNotionProjectStrategy(
-		projects.notion,
-		projects.todoist
-	);
-	log('strategy-project', projectStrategy);
+async function fetchTodoist({projects, tasks}: TodoistRepos) {
+	const todoistProjects = await projects.getProjects();
+	const todoistTasks = await tasks.getSyncCandidates(todoistProjects);
+	return {todoistProjects, todoistTasks};
+}
 
-	const projectSyncer = new ProjectSyncLogger(
-		new RepositoryProjectSyncer(repos.notion, repos.todoist)
-	);
-	projectSyncer.sync(projectStrategy);
+function sync(
+	strategies: SyncStrategy,
+	notion: NotionRepos,
+	todoist: TodoistRepos
+) {
+	log('strategy-projects', strategies.projects);
+	log('strategy-tasks', strategies.tasks);
+
+	const syncer = new SyncLogger(new RepositorySyncer(notion, todoist));
+	syncer.sync(strategies);
 }

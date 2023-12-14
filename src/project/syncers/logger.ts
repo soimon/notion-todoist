@@ -1,13 +1,19 @@
-import {ProjectSyncStrategy, ProjectSyncer} from '@project/types';
+import {
+	ProjectSyncStrategy,
+	SyncStrategy,
+	Syncer,
+	TaskSyncStrategy,
+} from '@project/types';
 
 const TAB_PREFIX = '   ';
 const PROJECT_PREFIX = `${TAB_PREFIX}📦 `;
 const GOAL_PREFIX = `${TAB_PREFIX}🎯 `;
+const TASK_PREFIX = `${TAB_PREFIX}☑ `;
 
-export class ProjectSyncLogger implements ProjectSyncer {
-	constructor(private syncer: ProjectSyncer) {}
+export class SyncLogger implements Syncer {
+	constructor(private syncer: Syncer) {}
 
-	async sync(strategy: ProjectSyncStrategy) {
+	async sync(strategy: SyncStrategy) {
 		console.log('\nPerforming the following strategy:\n');
 		this.log(strategy);
 		console.time('Elapsed');
@@ -17,22 +23,31 @@ export class ProjectSyncLogger implements ProjectSyncer {
 		return output;
 	}
 
-	private log(strategy: ProjectSyncStrategy) {
-		const {notion, todoist} = strategy;
-		this.logPlatform('NOTION', notion);
-		this.logPlatform('TODOIST', todoist);
+	private log(strategy: SyncStrategy) {
+		this.logPlatform('NOTION', 'notion', strategy);
+		this.logPlatform('TODOIST', 'todoist', strategy);
 	}
 
 	private logPlatform(
 		platform: string,
-		strategy: ProjectSyncStrategy['notion' | 'todoist']
+		key: keyof SyncStrategy['projects'] & keyof SyncStrategy['tasks'],
+		strategy: SyncStrategy
 	) {
-		const {add, remove, update} = strategy;
+		const [p, t] = [strategy.projects[key], strategy.tasks[key]];
 		console.log(`${platform}:`);
-		if (add.length + remove.length + update.length === 0)
+		if (
+			p.add.length +
+				p.remove.length +
+				p.update.length +
+				t.add.length +
+				t.remove.length +
+				t.update.length ===
+			0
+		)
 			console.log(`${TAB_PREFIX}No changes`);
-		this.logProjects(strategy);
-		this.logGoals(strategy);
+		this.logProjects(strategy.projects[key]);
+		this.logGoals(strategy.projects[key]);
+		this.logTasks(strategy.tasks[key]);
 	}
 
 	private logProjects(strategy: ProjectSyncStrategy['notion' | 'todoist']) {
@@ -52,6 +67,15 @@ export class ProjectSyncLogger implements ProjectSyncer {
 		if (added > 0) console.log(`${GOAL_PREFIX}Add   ${added}`);
 		if (removed > 0) console.log(`${GOAL_PREFIX}Remove  ${removed}`);
 		if (updated > 0) console.log(`${GOAL_PREFIX}Update  ${updated}`);
+	}
+
+	private logTasks(strategy: TaskSyncStrategy['notion' | 'todoist']) {
+		const {add, remove, update} = strategy;
+		if (add.length > 0) console.log(`${TASK_PREFIX}Add   ${add.length}`);
+		if (remove.length > 0)
+			console.log(`${TASK_PREFIX}Remove  ${remove.length}`);
+		if (update.length > 0)
+			console.log(`${TASK_PREFIX}Update  ${update.length}`);
 	}
 
 	private countGoalMutations(

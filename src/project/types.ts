@@ -1,7 +1,7 @@
 import {
 	GoalSyncStrategy,
-	ProjectSyncService,
-	TaskSyncService,
+	SyncService,
+	SyncStrategy as _SyncStrategy,
 	ProjectSyncStrategy as _ProjectSyncStrategy,
 	TaskSyncStrategy as _TaskSyncStrategy,
 } from '@framework/sync';
@@ -10,8 +10,13 @@ import {TodoistProject, TodoistTask} from '@project/todoist/models';
 import {GoalDiff} from './strategies/utils';
 import {Goal} from '@framework/models';
 
-export type ProjectSyncer = ProjectSyncService<NotionProject, TodoistProject>;
-export type TaskSyncer = TaskSyncService<NotionTask, TodoistTask>;
+export type Syncer = SyncService<SyncStrategy>;
+export type SyncStrategy = _SyncStrategy<
+	NotionProject,
+	TodoistProject,
+	NotionTask,
+	TodoistTask
+>;
 
 export type ProjectSyncStrategy = _ProjectSyncStrategy<
 	NotionProject,

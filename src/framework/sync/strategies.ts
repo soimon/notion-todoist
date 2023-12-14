@@ -1,6 +1,16 @@
 import {ExclusiveKeys, KeyValue} from '@framework/utils/types';
 import {Goal, Project, Task} from '../models';
 
+export type SyncStrategy<
+	P1 extends Project,
+	P2 extends Project,
+	T1 extends Task,
+	T2 extends Task,
+> = {
+	projects: ProjectSyncStrategy<P1, P2>;
+	tasks: TaskSyncStrategy<T1, T2>;
+};
+
 export type ProjectSyncStrategy<
 	T1 extends Project,
 	T2 extends Project,
