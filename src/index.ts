@@ -1,5 +1,4 @@
 require('module-alias/register');
-import {TodoistApi} from '@doist/todoist-api-typescript';
 import {TodoistSyncApi} from '@lib/todoist';
 import {Client} from '@notionhq/client';
 import {NotionRepository} from '@project/notion/repositories';
@@ -61,7 +60,6 @@ const createRepositories = () => ({
 		process.env.NOTION_DB_TASKS
 	),
 	todoist: new TodoistRepository(
-		new TodoistApi(process.env.TODOIST_TOKEN),
 		new TodoistSyncApi(process.env.TODOIST_TOKEN),
 		process.env.TODOIST_PROJECT_ROOT
 	),

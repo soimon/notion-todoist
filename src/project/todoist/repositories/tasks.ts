@@ -1,4 +1,3 @@
-import {TodoistApi} from '@doist/todoist-api-typescript';
 import {Task} from '@framework/models';
 import {TemporaryId, TodoistSyncApi} from '@lib/todoist';
 import {TodoistProject, TodoistTask} from '../models';
@@ -6,10 +5,7 @@ import {TodoistProject, TodoistTask} from '../models';
 // Repository for Todoist tasks.
 
 export class TodoistTaskRepository {
-	constructor(
-		private api: TodoistApi,
-		private syncApi: TodoistSyncApi
-	) {}
+	constructor(private api: TodoistSyncApi) {}
 
 	// Fetching
 
@@ -21,25 +17,24 @@ export class TodoistTaskRepository {
 	}
 
 	private async getTasksFor(projectId: string) {
-		const tasks = await this.api.getTasks({
-			projectId,
-		});
+		const tasks = await this.api.getTasks();
 		return tasks
+			.filter(t => t.project_id === projectId)
 			.filter(
-				(t): t is typeof t & {sectionId: string} =>
-					typeof t.sectionId === 'string' && t.sectionId !== ''
+				(t): t is typeof t & {section_id: string} =>
+					typeof t.section_id === 'string' && t.section_id !== ''
 			)
 			.map(
 				(task): TodoistTask => ({
 					syncId: task.id,
-					goalSyncId: task.sectionId,
+					goalSyncId: task.section_id,
 					content: task.content,
-					isCompleted: task.isCompleted,
+					isCompleted: task.checked,
 					scheduled: task.due?.date ? new Date(task.due.date) : undefined,
 					todoist: {
 						description: task.description,
-						projectId: task.projectId,
-						sectionId: task.sectionId,
+						projectId: task.project_id,
+						sectionId: task.section_id,
 					},
 				})
 			);
@@ -48,7 +43,7 @@ export class TodoistTaskRepository {
 	// Altering
 
 	add(task: Task): TemporaryId {
-		return this.syncApi.addTask({
+		return this.api.addTask({
 			content: task.content,
 			dueDate: makeDueString(task.scheduled),
 			sectionId: task.goalSyncId,
@@ -57,17 +52,17 @@ export class TodoistTaskRepository {
 
 	update(newState: Task): void {
 		const id = newState.syncId;
-		this.syncApi.updateTask(id, {
+		this.api.updateTask(id, {
 			content: newState.content,
 			dueDate: makeDueString(newState.scheduled),
 		});
-		if (newState.isCompleted) this.syncApi.closeTask(id);
-		else this.syncApi.reopenTask(id);
-		this.syncApi.moveTask(id, newState.goalSyncId);
+		if (newState.isCompleted) this.api.closeTask(id);
+		else this.api.reopenTask(id);
+		this.api.moveTask(id, newState.goalSyncId);
 	}
 
 	remove(task: Pick<Task, 'syncId'>): void {
-		this.syncApi.deleteTask(task.syncId);
+		this.api.deleteTask(task.syncId);
 	}
 }
 

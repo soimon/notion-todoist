@@ -1,4 +1,3 @@
-import {TodoistApi} from '@doist/todoist-api-typescript';
 import {Goal, Project} from '@framework/models';
 import {TemporaryId, TodoistSyncApi} from '@lib/todoist';
 import groupBy from 'object.groupby';
@@ -6,8 +5,7 @@ import {TodoistGoal, TodoistProject} from '../models';
 
 export class TodoistProjectRepository {
 	constructor(
-		private api: TodoistApi,
-		private syncApi: TodoistSyncApi,
+		private api: TodoistSyncApi,
 		private rootProject: string
 	) {}
 
@@ -33,11 +31,11 @@ export class TodoistProjectRepository {
 	private async getGoals(): Promise<TodoistGoal[]> {
 		const sections = await this.api.getSections();
 		return sections.map(
-			({id, projectId, name}): TodoistGoal => ({
+			({id, project_id, name}): TodoistGoal => ({
 				syncId: id,
 				...extractNameAndBlocked(name),
 				todoist: {
-					projectId,
+					projectId: project_id,
 				},
 			})
 		);
@@ -46,7 +44,7 @@ export class TodoistProjectRepository {
 	private async fetchProjects() {
 		return this.api
 			.getProjects()
-			.then(p => p.filter(p => p.parentId === this.rootProject));
+			.then(p => p.filter(({parent_id}) => parent_id === this.rootProject));
 	}
 
 	//-------------------------------------------------------------------------
@@ -54,7 +52,7 @@ export class TodoistProjectRepository {
 	//-------------------------------------------------------------------------
 
 	addProject(project: Pick<Project, 'name' | 'isBlocked'>): TemporaryId {
-		return this.syncApi.addProject({
+		return this.api.addProject({
 			parentId: process.env.TODOIST_PROJECT_ROOT,
 			name: applyLockInfo(project.name, project.isBlocked),
 			viewStyle: 'board',
@@ -62,11 +60,11 @@ export class TodoistProjectRepository {
 	}
 
 	removeProject({syncId}: Pick<Project, 'syncId'>): void {
-		this.syncApi.deleteProject(syncId);
+		this.api.deleteProject(syncId);
 	}
 
 	updateProject(project: Pick<Project, 'syncId' | 'name' | 'isBlocked'>): void {
-		this.syncApi.updateProject(project.syncId, {
+		this.api.updateProject(project.syncId, {
 			name: applyLockInfo(project.name, project.isBlocked),
 		});
 	}
@@ -75,18 +73,18 @@ export class TodoistProjectRepository {
 		goal: Pick<Goal, 'name' | 'isBlocked'>,
 		projectId: string
 	): TemporaryId {
-		return this.syncApi.addSection({
+		return this.api.addSection({
 			projectId,
 			name: applyLockInfo(goal.name, goal.isBlocked),
 		});
 	}
 
 	removeGoal({syncId}: Pick<Goal, 'syncId'>): void {
-		this.syncApi.deleteSection(syncId);
+		this.api.deleteSection(syncId);
 	}
 
 	updateGoal(goal: Pick<Goal, 'syncId' | 'name' | 'isBlocked'>): void {
-		this.syncApi.updateSection(goal.syncId, {
+		this.api.updateSection(goal.syncId, {
 			name: applyLockInfo(goal.name, goal.isBlocked),
 		});
 		// TODO: Implement moving

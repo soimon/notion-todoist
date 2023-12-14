@@ -15,6 +15,42 @@ export class TodoistSyncApi {
 	constructor(private readonly token: string) {}
 
 	//-----------------------------------------------------------------
+	// Fetching
+	//-----------------------------------------------------------------
+
+	private lastSnapshot: Snapshot | undefined;
+
+	async getSnapshot(): Promise<Snapshot> {
+		const {projects, sections, items, sync_token, full_sync} =
+			await this.request({
+				sync_token: '*',
+				resource_types: ['projects', 'items', 'sections'],
+			}).then(r => r.json());
+		const snapshot = {
+			projects: Array.isArray(projects) ? projects : [],
+			sections: Array.isArray(sections) ? sections : [],
+			tasks: Array.isArray(items) ? items : [],
+		};
+		this.lastSnapshot = snapshot;
+		return snapshot;
+	}
+
+	async getProjects() {
+		if (!this.lastSnapshot) await this.getSnapshot();
+		return this.lastSnapshot?.projects ?? [];
+	}
+
+	async getSections() {
+		if (!this.lastSnapshot) await this.getSnapshot();
+		return this.lastSnapshot?.sections ?? [];
+	}
+
+	async getTasks() {
+		if (!this.lastSnapshot) await this.getSnapshot();
+		return this.lastSnapshot?.tasks ?? [];
+	}
+
+	//-----------------------------------------------------------------
 	// Modifiers
 	//-----------------------------------------------------------------
 
@@ -145,3 +181,21 @@ export class TodoistSyncApi {
 }
 
 export type TemporaryId = string;
+
+export type Snapshot = {
+	projects: {id: string; parent_id: string; name: string}[];
+	sections: {id: string; project_id: string; name: string}[];
+	tasks: {
+		id: string;
+		project_id: string;
+		section_id: string | null;
+		content: string;
+		checked: boolean;
+		description: string;
+		due: DueDate;
+	}[];
+};
+
+type DueDate = {
+	date: string;
+};

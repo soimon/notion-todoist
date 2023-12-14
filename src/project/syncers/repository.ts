@@ -87,6 +87,7 @@ export class RepositorySyncer implements Syncer {
 		// Linking
 
 		const syncIds = await this.todoist.commit();
+
 		if (syncIds)
 			for (const [temp, syncId] of syncIds) {
 				const item = idMapping[temp];

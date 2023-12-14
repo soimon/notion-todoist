@@ -1,17 +1,17 @@
-import {TodoistApi} from '@doist/todoist-api-typescript';
+import {TodoistSyncApi} from '@lib/todoist';
 import {TodoistProjectRepository} from './projects';
 import {TodoistTaskRepository} from './tasks';
-import {TodoistSyncApi} from '@lib/todoist';
 
 export class TodoistRepository {
-	private api: TodoistSyncApi;
 	readonly projects: TodoistProjectRepository;
 	readonly tasks: TodoistTaskRepository;
 
-	constructor(api: TodoistApi, syncApi: TodoistSyncApi, rootProject: string) {
-		this.api = syncApi;
-		this.projects = new TodoistProjectRepository(api, syncApi, rootProject);
-		this.tasks = new TodoistTaskRepository(api, syncApi);
+	constructor(
+		private api: TodoistSyncApi,
+		rootProject: string
+	) {
+		this.projects = new TodoistProjectRepository(api, rootProject);
+		this.tasks = new TodoistTaskRepository(api);
 	}
 
 	async commit() {
