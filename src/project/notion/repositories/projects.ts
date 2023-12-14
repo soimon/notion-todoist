@@ -1,6 +1,12 @@
 import {Client} from '@notionhq/client';
 import groupBy from 'object.groupby';
-import {NotionGoal, NotionProject} from '../models';
+import {
+	NotionGoal,
+	NotionProject,
+	blockedGoalStates,
+	closedGoalStates,
+	inProgressProjectStates,
+} from '../models';
 import {goalSchema, projectSchema} from './schemas';
 import {QueryFilters, queryDatabase} from '@lib/notion';
 
@@ -43,7 +49,7 @@ export class NotionProjectRepository {
 			const projectId = properties.project?.relation[0]?.id ?? '';
 			const isBlocked =
 				(properties.waitingFor?.relation.length ?? 0) > 0 ||
-				properties.status?.status?.name === 'Paused';
+				blockedGoalStates.includes(properties.status?.status?.name ?? '');
 			return {
 				syncId,
 				name,
@@ -103,12 +109,12 @@ export class NotionProjectRepository {
 
 const goalIsNotDoneOrOrphanedFilter: QueryFilters = {
 	and: [
-		{
+		...closedGoalStates.map(state => ({
 			property: goalSchema['status'].id,
 			status: {
-				does_not_equal: 'Done',
+				does_not_equal: state,
 			},
-		},
+		})),
 		{
 			property: goalSchema['project'].id,
 			relation: {
@@ -120,24 +126,12 @@ const goalIsNotDoneOrOrphanedFilter: QueryFilters = {
 
 const projectIsActionableFilter: QueryFilters = {
 	or: [
-		{
+		...inProgressProjectStates.map(state => ({
 			property: projectSchema['status'].id,
 			status: {
-				equals: '2: Outlining',
+				equals: state,
 			},
-		},
-		{
-			property: projectSchema['status'].id,
-			status: {
-				equals: '3: In progress',
-			},
-		},
-		{
-			property: projectSchema['status'].id,
-			status: {
-				equals: 'Wrapping',
-			},
-		},
+		})),
 	],
 };
 

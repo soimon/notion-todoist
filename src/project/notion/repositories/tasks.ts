@@ -1,101 +1,99 @@
-// import {Client} from '@notionhq/client';
-// import {
-// 	NotionPage,
-// 	QueryFilters,
-// 	getChangedPages,
-// 	queryDatabase,
-// } from '../../wrappers/notion';
-// import {NotionTask, States, isCompleted} from './model';
-// import {taskSchema} from './schemas';
+import {Client} from '@notionhq/client';
+import {taskSchema} from './schemas';
+import {
+	NotionPage,
+	QueryFilters,
+	getChangedPages,
+	queryDatabase,
+} from '@lib/notion';
+import {NotionTask, closedTaskStates} from '../models';
 
-// // Repository
+// Repository
 
-// export class NotionTaskRepository {
-// 	constructor(
-// 		private api: Client,
-// 		private databaseId: string
-// 	) {}
+export class NotionTaskRepository {
+	constructor(
+		private api: Client,
+		private databaseId: string
+	) {}
 
-// 	async getSyncCandidates(since: Date) {
-// 		const results = [
-// 			...(await this.getChangedSince(since)),
-// 			...(await this.getOpenTasks()),
-// 		];
-// 		const uniqueResults = results.filter(
-// 			(v, i, a) => a.findIndex(t => t.id === v.id) === i
-// 		);
-// 		return uniqueResults;
-// 	}
+	// Fetching
 
-// 	private getOpenTasks = async () =>
-// 		await this.query({
-// 			and: [
-// 				{
-// 					property: taskSchema.status.id,
-// 					status: {
-// 						does_not_equal: States.Done,
-// 					},
-// 				},
-// 				{
-// 					property: taskSchema.status.id,
-// 					status: {
-// 						does_not_equal: States.Cut,
-// 					},
-// 				},
-// 			],
-// 		});
+	async getSyncCandidates(since: Date) {
+		const results = [
+			...(await this.getChangedSince(since)),
+			...(await this.getOpenTasks()),
+		];
+		const uniqueResults = results.filter(
+			(v, i, a) => a.findIndex(t => t.syncId === v.syncId) === i
+		);
+		return uniqueResults;
+	}
 
-// 	private getChangedSince = async (date: Date) =>
-// 		(
-// 			await getChangedPages({
-// 				notion: this.api,
-// 				database: this.databaseId,
-// 				since: date,
-// 				schema: taskSchema,
-// 			})
-// 		).map(rowToModel);
+	private getOpenTasks = async () =>
+		await this.query({
+			and: [
+				...closedTaskStates.map(state => ({
+					property: taskSchema.status.id,
+					status: {
+						does_not_equal: state,
+					},
+				})),
+			],
+		});
 
-// 	private query = async (filter: QueryFilters) =>
-// 		(
-// 			await queryDatabase({
-// 				notion: this.api,
-// 				database: this.databaseId,
-// 				schema: taskSchema,
-// 				filter,
-// 			})
-// 		).map(rowToModel);
+	private getChangedSince = async (date: Date) =>
+		(
+			await getChangedPages({
+				notion: this.api,
+				database: this.databaseId,
+				since: date,
+				schema: taskSchema,
+			})
+		).map(rowToModel);
 
-// 	async linkWithTodoist(notionId: string, todoistId: string) {
-// 		const response = await this.api.pages.update({
-// 			page_id: notionId,
-// 			properties: {
-// 				[taskSchema.todoistId.id]: {
-// 					rich_text: [{type: 'text', text: {content: todoistId}}],
-// 				},
-// 			},
-// 		});
-// 		return response;
-// 	}
-// }
+	private query = async (filter: QueryFilters) =>
+		(
+			await queryDatabase({
+				notion: this.api,
+				database: this.databaseId,
+				schema: taskSchema,
+				filter,
+			})
+		).map(rowToModel);
 
-// // Converts a Notion page row to a NotionTask model.
+	// Altering
 
-// const rowToModel = ({
-// 	id,
-// 	properties: p,
-// 	created_time,
-// 	last_edited_time,
-// }: NotionPage<typeof taskSchema>): NotionTask => ({
-// 	id: id,
-// 	todoistId: p.todoistId?.rich_text[0]?.plain_text ?? '',
-// 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-// 	projectName: (p.project?.formula as any)?.string ?? '',
-// 	content: p.title?.title[0]?.plain_text ?? '',
-// 	scheduled: p.scheduled?.date?.start
-// 		? new Date(p.scheduled?.date?.start)
-// 		: undefined,
-// 	isCompleted: isCompleted(p.status?.status?.name ?? ''),
-// 	lastEdited: new Date(last_edited_time ?? created_time),
-// });
+	async linkWithTodoist(notionId: string, todoistId: string) {
+		const response = await this.api.pages.update({
+			page_id: notionId,
+			properties: {
+				[taskSchema.syncId.id]: {
+					rich_text: [{type: 'text', text: {content: todoistId}}],
+				},
+			},
+		});
+		return response;
+	}
+}
 
-export const a = 1;
+// Converts a Notion page row to a NotionTask model.
+
+const rowToModel = ({
+	id,
+	properties: p,
+	created_time,
+	last_edited_time,
+}: NotionPage<typeof taskSchema>): NotionTask => ({
+	syncId: p.syncId?.rich_text[0]?.plain_text ?? '',
+	content: p.title?.title[0]?.plain_text ?? '',
+	scheduled: p.scheduled?.date?.start
+		? new Date(p.scheduled?.date?.start)
+		: undefined,
+	isCompleted: !closedTaskStates.includes(p.status?.status?.name ?? ''),
+	notion: {
+		id,
+		lastEdited: new Date(last_edited_time ?? created_time),
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		projectName: (p.project?.formula as any)?.string ?? '',
+	},
+});
