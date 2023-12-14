@@ -1,12 +1,24 @@
 import {ExclusiveKeys, KeyValue} from '@framework/utils/types';
-import {Goal, Project} from '../models';
+import {Goal, Project, Task} from '../models';
 
 export type ProjectSyncStrategy<
 	T1 extends Project,
 	T2 extends Project,
-> = PlatformSyncStrategy<T1, T2> & PlatformSyncStrategy<T2, T1>;
+> = PlatformProjectSyncStrategy<T1, T2> & PlatformProjectSyncStrategy<T2, T1>;
 
-type PlatformSyncStrategy<
+export type TaskSyncStrategy<
+	T1 extends Task,
+	T2 extends Task,
+> = PlatformTaskSyncStrategy<T1, T2> & PlatformTaskSyncStrategy<T2, T1>;
+
+export type GoalSyncStrategy<G extends Goal> = {
+	add: G[];
+	remove: Goal[];
+	update: Goal[];
+	onlySyncGoals?: boolean;
+};
+
+type PlatformProjectSyncStrategy<
 	P1 extends Project,
 	P2 extends Project,
 	G extends Goal = P2['goals'][number],
@@ -19,9 +31,11 @@ type PlatformSyncStrategy<
 	}
 >;
 
-export type GoalSyncStrategy<G extends Goal> = {
-	add: G[];
-	remove: Goal[];
-	update: Goal[];
-	onlySyncGoals?: boolean;
-};
+type PlatformTaskSyncStrategy<T1 extends Task, T2 extends Task> = KeyValue<
+	ExclusiveKeys<T1, T2>,
+	{
+		add: T2[];
+		remove: Task[];
+		update: Task[];
+	}
+>;

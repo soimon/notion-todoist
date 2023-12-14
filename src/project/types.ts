@@ -1,18 +1,23 @@
 import {
 	GoalSyncStrategy,
 	ProjectSyncService,
+	TaskSyncService,
 	ProjectSyncStrategy as _ProjectSyncStrategy,
+	TaskSyncStrategy as _TaskSyncStrategy,
 } from '@framework/sync';
-import {NotionProject} from '@project/notion/models';
-import {TodoistProject} from '@project/todoist/models';
+import {NotionProject, NotionTask} from '@project/notion/models';
+import {TodoistProject, TodoistTask} from '@project/todoist/models';
 import {GoalDiff} from './strategies/utils';
 import {Goal} from '@framework/models';
 
 export type ProjectSyncer = ProjectSyncService<NotionProject, TodoistProject>;
+export type TaskSyncer = TaskSyncService<NotionTask, TodoistTask>;
+
 export type ProjectSyncStrategy = _ProjectSyncStrategy<
 	NotionProject,
 	TodoistProject
 >;
+export type TaskSyncStrategy = _TaskSyncStrategy<NotionTask, TodoistTask>;
 
 // Strategizers
 
@@ -24,3 +29,8 @@ export type ProjectSyncStrategizer = (
 export type GoalSyncStrategizer<G extends Goal> = (
 	diff: GoalDiff
 ) => GoalSyncStrategy<G>;
+
+export type TaskSyncStrategizer = (
+	notion: NotionTask[],
+	todoist: TodoistTask[]
+) => TaskSyncStrategy;
