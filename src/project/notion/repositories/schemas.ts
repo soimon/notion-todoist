@@ -14,7 +14,7 @@ export const goalSchema = defineSchema({
 	tasks: {type: 'relation', id: 'K_%5CS'},
 	waitingFor: {type: 'relation', id: 'LfCT'},
 	project: {type: 'relation', id: '%60%3EOl'},
-	todoistId: {type: 'rich_text', id: 'zcHs'},
+	synccId: {type: 'rich_text', id: 'zcHs'},
 });
 
 export const taskSchema = defineSchema({
@@ -25,5 +25,5 @@ export const taskSchema = defineSchema({
 	scheduled: {type: 'date', id: 'lB%5Dl'},
 	status: {type: 'status', id: 'oua%5B'},
 	who: {type: 'relation', id: 'n%3D%7Dt'},
-	todoistId: {type: 'rich_text', id: 'sn%5EO'},
+	syncId: {type: 'rich_text', id: 'sn%5EO'},
 });

@@ -1,3 +1,4 @@
+import {Goal} from '@framework/models';
 import {diff} from '@framework/sync';
 import {NotionProject} from '@project/notion/models';
 import {TodoistProject} from '@project/todoist/models';
@@ -27,9 +28,9 @@ export const isNotion = <T extends {notion: object}>(p: object): p is T =>
 export const isTodoist = <T extends {todoist: object}>(p: object): p is T =>
 	'todoist' in p;
 
-export const applyGoalStrategyAndFilter = (
+export const applyGoalStrategyAndFilter = <G extends Goal>(
 	pairs: ReturnType<typeof diffProjects>['pairs'],
-	goalStrategizer: GoalSyncStrategizer
+	goalStrategizer: GoalSyncStrategizer<G>
 ) =>
 	pairs
 		.map(p => ({

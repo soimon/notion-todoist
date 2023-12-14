@@ -20,13 +20,40 @@ export class RepositoryProjectSyncer implements ProjectSyncer {
 	}
 
 	private async syncTodoist(strategy: ProjectSyncStrategy['todoist']) {
+		// Add projects
+
 		for (const project of strategy.add) {
 			const id = await this.todoistRepository.addProject(project);
 			await this.notionRepository.linkProject(project, id);
 		}
+
+		// Remove projects
+
 		for (const project of strategy.remove)
 			await this.todoistRepository.removeProject(project);
-		for (const project of strategy.update)
-			await this.todoistRepository.updateProject(project);
+
+		// Update projects or goals
+
+		for (const project of strategy.update) {
+			// Update the project (if it's not just a goal sync)
+			if (!project.goals.onlySyncGoals)
+				await this.todoistRepository.updateProject(project);
+
+			// Add goals
+
+			for (const goal of project.goals.add) {
+				const id = await this.todoistRepository.addGoal(goal, project.syncId);
+				await this.notionRepository.linkGoal(goal, id);
+			}
+
+			// Remove goals
+
+			for (const goal of project.goals.remove)
+				await this.todoistRepository.removeGoal(goal);
+
+			// Update goals
+			for (const goal of project.goals.update)
+				await this.todoistRepository.updateGoal(goal);
+		}
 	}
 }

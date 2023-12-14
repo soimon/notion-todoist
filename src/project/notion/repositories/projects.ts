@@ -39,7 +39,7 @@ export class NotionProjectRepository {
 	private async getGoals(): Promise<NotionGoal[]> {
 		return (await this.fetchGoals()).map(({id, properties}): NotionGoal => {
 			const name = properties.name?.title[0]?.plain_text ?? '';
-			const syncId = properties.todoistId?.rich_text[0]?.plain_text ?? '';
+			const syncId = properties.synccId?.rich_text[0]?.plain_text ?? '';
 			const projectId = properties.project?.relation[0]?.id ?? '';
 			const isBlocked =
 				(properties.waitingFor?.relation.length ?? 0) > 0 ||
@@ -81,6 +81,17 @@ export class NotionProjectRepository {
 			page_id: project.notion.id,
 			properties: {
 				[projectSchema.syncId.id]: {
+					rich_text: [{type: 'text', text: {content: syncId}}],
+				},
+			},
+		});
+	}
+
+	async linkGoal(goal: NotionGoal, syncId: string) {
+		return this.api.pages.update({
+			page_id: goal.notion.id,
+			properties: {
+				[goalSchema.synccId.id]: {
 					rich_text: [{type: 'text', text: {content: syncId}}],
 				},
 			},

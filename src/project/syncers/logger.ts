@@ -8,15 +8,19 @@ export class ProjectSyncLogger implements ProjectSyncer {
 	constructor(private syncer: ProjectSyncer) {}
 
 	async sync(strategy: ProjectSyncStrategy) {
-		const output = await this.syncer.sync(strategy);
+		console.log('\nPerforming the following strategy:\n');
 		this.log(strategy);
+		console.time('Elapsed');
+		const output = await this.syncer.sync(strategy);
+		console.log('\nDone!');
+		console.timeEnd('Elapsed');
 		return output;
 	}
 
 	private log(strategy: ProjectSyncStrategy) {
 		const {notion, todoist} = strategy;
-		this.logPlatform('Notion', notion);
-		this.logPlatform('Todoist', todoist);
+		this.logPlatform('NOTION', notion);
+		this.logPlatform('TODOIST', todoist);
 	}
 
 	private logPlatform(
@@ -36,19 +40,18 @@ export class ProjectSyncLogger implements ProjectSyncer {
 		const updateCount = countUpdates(update);
 		if (add.length + remove.length + updateCount > 0)
 			console.log(`${TAB_PREFIX}Projects`);
-		if (add.length > 0) console.log(`${PROJECT_PREFIX}Added    ${add.length}`);
+		if (add.length > 0) console.log(`${PROJECT_PREFIX}Add   ${add.length}`);
 		if (remove.length > 0)
-			console.log(`${PROJECT_PREFIX} Removed  ${remove.length}`);
-		if (updateCount > 0)
-			console.log(`${PROJECT_PREFIX} Updated  ${updateCount}`);
+			console.log(`${PROJECT_PREFIX}Remove  ${remove.length}`);
+		if (updateCount > 0) console.log(`${PROJECT_PREFIX}Update  ${updateCount}`);
 	}
 
 	private logGoals(strategy: ProjectSyncStrategy['notion' | 'todoist']) {
 		const {added, removed, updated} = this.countGoalMutations(strategy);
 		if (added + removed + updated > 0) console.log(`${TAB_PREFIX}Goals`);
-		if (added > 0) console.log(`${GOAL_PREFIX}Added    ${added}`);
-		if (removed > 0) console.log(`${GOAL_PREFIX}Removed  ${removed}`);
-		if (updated > 0) console.log(`${GOAL_PREFIX}Updated  ${updated}`);
+		if (added > 0) console.log(`${GOAL_PREFIX}Add   ${added}`);
+		if (removed > 0) console.log(`${GOAL_PREFIX}Remove  ${removed}`);
+		if (updated > 0) console.log(`${GOAL_PREFIX}Update  ${updated}`);
 	}
 
 	private countGoalMutations(

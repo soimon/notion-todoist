@@ -10,8 +10,7 @@ import {TodoistGoal, TodoistProject} from '@project/todoist/models';
 
 export const followNotionProjectStrategy: ProjectSyncStrategizer = (
 	notion,
-	todoist,
-	goalStrategy = followNotionGoalStrategy
+	todoist
 ) => {
 	const diff = diffProjects(notion, todoist);
 	return {
@@ -19,17 +18,18 @@ export const followNotionProjectStrategy: ProjectSyncStrategizer = (
 		todoist: {
 			add: diff.loners.filter(isNotion<NotionProject>),
 			remove: diff.loners.filter(isTodoist<TodoistProject>),
-			update: applyGoalStrategyAndFilter(diff.pairs, goalStrategy).map(
-				({notion, goals}) => ({
-					...notion,
-					goals,
-				})
-			),
+			update: applyGoalStrategyAndFilter(
+				diff.pairs,
+				followNotionGoalStrategy
+			).map(({notion, goals}) => ({
+				...notion,
+				goals,
+			})),
 		},
 	};
 };
 
-export const followNotionGoalStrategy: GoalSyncStrategizer = ({
+const followNotionGoalStrategy: GoalSyncStrategizer<NotionGoal> = ({
 	loners,
 	pairs,
 }) => {

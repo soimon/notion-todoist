@@ -70,6 +70,29 @@ export class TodoistProjectRepository {
 		});
 	}
 
+	async addGoal(
+		goal: Pick<Project, 'name' | 'isBlocked'>,
+		projectId: string
+	): Promise<string> {
+		const {id} = await this.api.addSection({
+			projectId,
+			name: applyLockInfo(goal.name, goal.isBlocked),
+		});
+		return id;
+	}
+
+	async removeGoal({syncId}: Pick<Project, 'syncId'>): Promise<boolean> {
+		return this.api.deleteSection(syncId);
+	}
+
+	async updateGoal(
+		goal: Pick<Project, 'syncId' | 'name' | 'isBlocked'>
+	): Promise<void> {
+		await this.api.updateSection(goal.syncId, {
+			name: applyLockInfo(goal.name, goal.isBlocked),
+		});
+	}
+
 	/**
 	 * Deletes all projects.
 	 */

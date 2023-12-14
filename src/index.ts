@@ -12,13 +12,18 @@ dotenv.config();
 console.clear();
 
 async function main() {
-	// Create repositories
+	console.log('Connecting to apis...');
+	console.time('Elapsed');
+
+	// Connect to apis
 
 	const notion = new Client({
 		auth: process.env.NOTION_TOKEN,
 	});
-
 	const todoist = new TodoistApi(process.env.TODOIST_TOKEN);
+
+	// Create repositories
+
 	const todoistProjectsRepo = new TodoistProjectRepository(
 		todoist,
 		process.env.TODOIST_PROJECT_ROOT
@@ -29,28 +34,25 @@ async function main() {
 		process.env.NOTION_DB_GOALS
 	);
 
-	// Fetch projects
-
-	// const notionProjects = await cacheResult('notion-projects', () =>
-	// 	notionProjectsRepo.getProjects()
-	// );
-	// const todoistProjects = await cacheResult('todoist-projects', () =>
-	// 	todoistProjectsRepo.getProjects()
-	// );
+	// Fetch data
 
 	const notionProjects = await notionProjectsRepo.getProjects();
 	const todoistProjects = await todoistProjectsRepo.getProjects();
+	console.timeEnd('Elapsed');
+
+	// Determine syncing strategy
+
 	const projectStrategy = followNotionProjectStrategy(
 		notionProjects,
 		todoistProjects
 	);
+	log('strategy-project', projectStrategy);
+
+	// Perform syncing
+
 	const projectSyncer = new ProjectSyncLogger(
 		new RepositoryProjectSyncer(notionProjectsRepo, todoistProjectsRepo)
 	);
-	log('notion-projects', notionProjects);
-	log('todoist-projects', todoistProjects);
-	log('strategy-project', projectStrategy);
-
 	projectSyncer.sync(projectStrategy);
 
 	// const todoistTasks = new TodoistTaskRepository(todoist);
@@ -60,7 +62,6 @@ async function main() {
 	// );
 
 	// Fetch notion tasks
-
 	// TODO: Get all potentially out of sync candidates from the Notion side
 	// - Tasks that are open, and not in Todoist (closed isn't visible anyway)
 	// - Tasks that have recently changed
@@ -79,23 +80,6 @@ async function main() {
 	// - Goal or project properties have changed
 	// So in order to cover those cases, we need to also:
 	// - Get all open tasks from Todoist (to see if they're not deleted)
-
-	// Scaffold
-
-	// todoistProjects.deleteAll();
-	// for (const p of projectsWithGoals) {
-	// 	const {id} = await todoist.addProject({
-	// 		parentId: process.env.TODOIST_PROJECT_ROOT,
-	// 		name: `${p.isBlocked ? '🔒 ' : ''}${p.name}`,
-	// 		viewStyle: 'board',
-	// 	});
-	// 	for (const g of p.goals) {
-	// 		await todoist.addSection({
-	// 			projectId: id,
-	// 			name: `${g.isBlocked ? '🔒 ' : ''}${g.name}`,
-	// 		});
-	// 	}
-	// }
 
 	// const notionCandidates = await notionTasks.getSyncCandidates(new Date());
 	// const todoistCandidates = await todoistTasks.getSyncCandidates();
