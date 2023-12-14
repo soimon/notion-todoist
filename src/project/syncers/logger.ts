@@ -6,9 +6,9 @@ import {
 } from '@project/types';
 
 const TAB_PREFIX = '   ';
-const PROJECT_PREFIX = `${TAB_PREFIX}📦 `;
-const GOAL_PREFIX = `${TAB_PREFIX}🎯 `;
-const TASK_PREFIX = `${TAB_PREFIX}☑ `;
+const PROJECT_PREFIX = `${TAB_PREFIX}\u2192 📦 `;
+const GOAL_PREFIX = `${TAB_PREFIX}\u2192 🎯 `;
+const TASK_PREFIX = `${TAB_PREFIX}\u2192 ✅ `;
 
 export class SyncLogger implements Syncer {
 	constructor(private syncer: Syncer) {}
@@ -53,8 +53,7 @@ export class SyncLogger implements Syncer {
 	private logProjects(strategy: ProjectSyncStrategy['notion' | 'todoist']) {
 		const {add, remove, update} = strategy;
 		const updateCount = countUpdates(update);
-		if (add.length + remove.length + updateCount > 0)
-			console.log(`${TAB_PREFIX}Projects`);
+
 		if (add.length > 0) console.log(`${PROJECT_PREFIX}Add   ${add.length}`);
 		if (remove.length > 0)
 			console.log(`${PROJECT_PREFIX}Remove  ${remove.length}`);
@@ -71,6 +70,8 @@ export class SyncLogger implements Syncer {
 
 	private logTasks(strategy: TaskSyncStrategy['notion' | 'todoist']) {
 		const {add, remove, update} = strategy;
+		if (add.length + remove.length + update.length > 0)
+			console.log(`${TAB_PREFIX}Tasks`);
 		if (add.length > 0) console.log(`${TASK_PREFIX}Add   ${add.length}`);
 		if (remove.length > 0)
 			console.log(`${TASK_PREFIX}Remove  ${remove.length}`);

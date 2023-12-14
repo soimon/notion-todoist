@@ -38,6 +38,12 @@ export class NotionTaskRepository {
 						does_not_equal: state,
 					},
 				})),
+				{
+					property: taskSchema.goal.id,
+					relation: {
+						is_not_empty: true,
+					},
+				},
 			],
 		});
 
@@ -49,7 +55,9 @@ export class NotionTaskRepository {
 				since: date,
 				schema: taskSchema,
 			})
-		).map(rowToModel);
+		)
+			.filter(r => r.properties.goal?.id)
+			.map(rowToModel);
 
 	private query = async (filter: QueryFilters) =>
 		(
@@ -63,12 +71,12 @@ export class NotionTaskRepository {
 
 	// Altering
 
-	async linkWithTodoist(notionId: string, todoistId: string) {
+	async link(task: NotionTask, syncId: string) {
 		const response = await this.api.pages.update({
-			page_id: notionId,
+			page_id: task.notion.id,
 			properties: {
 				[taskSchema.syncId.id]: {
-					rich_text: [{type: 'text', text: {content: todoistId}}],
+					rich_text: [{type: 'text', text: {content: syncId}}],
 				},
 			},
 		});
@@ -85,15 +93,18 @@ const rowToModel = ({
 	last_edited_time,
 }: NotionPage<typeof taskSchema>): NotionTask => ({
 	syncId: p.syncId?.rich_text[0]?.plain_text ?? '',
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	goalSyncId: (p.goalSyncId?.formula as any)?.string ?? '',
 	content: p.title?.title[0]?.plain_text ?? '',
 	scheduled: p.scheduled?.date?.start
 		? new Date(p.scheduled?.date?.start)
 		: undefined,
-	isCompleted: !closedTaskStates.includes(p.status?.status?.name ?? ''),
+	isCompleted: closedTaskStates.includes(p.status?.status?.name ?? ''),
 	notion: {
 		id,
 		lastEdited: new Date(last_edited_time ?? created_time),
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		projectName: (p.project?.formula as any)?.string ?? '',
+		status: p.status?.status?.name ?? '',
 	},
 });

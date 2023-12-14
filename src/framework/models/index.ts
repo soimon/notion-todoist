@@ -13,6 +13,7 @@ export type Goal = {
 
 export type Task = {
 	syncId: string;
+	goalSyncId: Goal['syncId'];
 	isCompleted: boolean;
 	content: string;
 	scheduled?: Date;

@@ -8,6 +8,7 @@ export type NotionTask = Task & {
 		id: NotionPage<{}>['id'];
 		lastEdited: Date;
 		projectName: string;
+		status: string;
 	};
 };
 

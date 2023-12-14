@@ -1,8 +1,13 @@
 import {Goal} from '@framework/models';
 import {diff} from '@framework/sync';
-import {NotionProject} from '@project/notion/models';
-import {TodoistProject} from '@project/todoist/models';
+import {NotionProject, NotionTask} from '@project/notion/models';
+import {TodoistProject, TodoistTask} from '@project/todoist/models';
 import {GoalSyncStrategizer} from '@project/types';
+
+// Diff tasks
+
+export const diffTasks = (notion: NotionTask[], todoist: TodoistTask[]) =>
+	diff(notion, todoist, v => v.syncId);
 
 // Diff projects with their goals included
 

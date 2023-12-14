@@ -22,7 +22,7 @@ export async function retrievePage<TPropertiesList extends Schema>(options: {
 
 type GetChangedPageOptions = Omit<QueryOptions, 'filter'> & {
 	since: Date;
-	filter?: SecondaryQueryFilters;
+	// filter?: SecondaryQueryFilters;
 };
 export type SecondaryQueryFilters = Extract<
 	QueryFilters,
@@ -49,7 +49,6 @@ export async function getChangedPages<TSchema extends Schema>(
 					},
 				},
 			],
-			and: options.filter,
 		},
 	});
 }
@@ -86,8 +85,6 @@ async function accumulateQueryResults(options: QueryOptions) {
 	} while (next_cursor);
 	return pages;
 }
-
-// TODO: Respond to rate limits
 
 const query = (
 	{database: database_id, filter, notion}: QueryOptions,

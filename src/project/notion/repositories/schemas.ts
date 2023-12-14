@@ -26,4 +26,5 @@ export const taskSchema = defineSchema({
 	status: {type: 'status', id: 'oua%5B'},
 	who: {type: 'relation', id: 'n%3D%7Dt'},
 	syncId: {type: 'rich_text', id: 'sn%5EO'},
+	goalSyncId: {type: 'formula', id: 'wNMw'},
 });

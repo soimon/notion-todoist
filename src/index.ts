@@ -6,48 +6,55 @@ import {
 	doNothingProjectStrategy,
 	doNothingTaskStrategy,
 } from '@project/strategies/do-nothing';
-import {followNotionProjectStrategy} from '@project/strategies/follow-notion';
-import {SyncLogger} from '@project/syncers/logger';
-import {TodoistTaskRepository} from '@project/todoist/repositories';
 import {
-	ProjectSyncStrategy,
-	SyncStrategy,
-	TaskSyncStrategy,
-} from '@project/types';
+	followNotionProjectStrategy,
+	followNotionTaskStrategy,
+} from '@project/strategies/follow-notion';
+import {SyncLogger} from '@project/syncers/logger';
+import {NotionRepos, TodoistRepos} from '@project/syncers/repository';
+import {TodoistTaskRepository} from '@project/todoist/repositories';
+import {SyncStrategy} from '@project/types';
 import dotenv from 'dotenv';
 import {log} from './framework/utils/dev';
 import {NotionProjectRepository} from './project/notion/repositories/projects';
 import {RepositorySyncer} from './project/syncers/repository';
 import {TodoistProjectRepository} from './project/todoist/repositories/projects';
-import {NotionRepos, TodoistRepos} from '@project/syncers/repository';
+import {getDatabaseSchema} from '@lib/notion';
 dotenv.config();
 console.clear();
 
 const SYNC_PROJECTS = false;
+const SYNC_TASKS = true;
 
 async function main() {
-	console.log('Connecting to apis...');
-	console.time('Elapsed');
-
 	// Get data from repositories
 
+	console.log('Connecting to apis...');
+	console.time('Elapsed');
 	const {notion, todoist} = createRepositories();
+	console.timeEnd('Elapsed');
+
+	console.log('\nFetching data...');
+	console.time('Elapsed');
 	const [{notionProjects, notionTasks}, {todoistProjects, todoistTasks}] =
 		await Promise.all([fetchNotion(notion), fetchTodoist(todoist)]);
 	console.timeEnd('Elapsed');
 
 	// Determine stategies
 
-	const projectStrategy = SYNC_PROJECTS
+	const projectStrategy = !SYNC_PROJECTS
 		? doNothingProjectStrategy(notionProjects, todoistProjects)
 		: followNotionProjectStrategy(notionProjects, todoistProjects);
-	const taskStrategy = doNothingTaskStrategy(notionTasks, todoistTasks);
+	const taskStrategy = !SYNC_TASKS
+		? doNothingTaskStrategy(notionTasks, todoistTasks)
+		: followNotionTaskStrategy(notionTasks, todoistTasks);
 
 	// Sync projects
 
 	sync({projects: projectStrategy, tasks: taskStrategy}, notion, todoist);
 
 	// Fetch notion tasks
+
 	// TODO: Get all potentially out of sync candidates from the Notion side
 	// - Tasks that are open, and not in Todoist (closed isn't visible anyway)
 	// - Tasks that have recently changed
@@ -73,7 +80,6 @@ async function main() {
 	// console.log(diff.notion);
 
 	// Update tasks in Todoist
-
 	// for (const notionTask of changedTasks) {
 	// 	const wasFound = await todoistTasks.update(notionTask.todoistId, {
 	// 		content: notionTask.content,
@@ -103,6 +109,11 @@ function createRepositories(): {notion: NotionRepos; todoist: TodoistRepos} {
 		auth: process.env.NOTION_TOKEN,
 	});
 	const todoistApi = new TodoistApi(process.env.TODOIST_TOKEN);
+
+	// getDatabaseSchema({
+	// 	notion: notionApi,
+	// 	database: process.env.NOTION_DB_TASKS,
+	// }).then(console.log);
 
 	return {
 		notion: {

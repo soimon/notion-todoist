@@ -23,17 +23,14 @@ export class RepositorySyncer implements Syncer {
 	private async syncNotion(
 		projects: ProjectSyncStrategy['notion'],
 		tasks: TaskSyncStrategy['notion']
-	) {
-		// strategy.add.forEach(project => this.notionRepository.addProject(project));
-		// strategy.remove.forEach(project => this.notionRepository.removeProject(project));
-		// strategy.update.forEach(project => this.notionRepository.updateProject(project));
-	}
+	) {}
 
 	private async syncTodoist(
 		projects: ProjectSyncStrategy['todoist'],
 		tasks: TaskSyncStrategy['todoist']
 	) {
 		const projectsRepo = this.todoist.projects;
+		const tasksRepo = this.todoist.tasks;
 
 		// Add projects
 
@@ -70,6 +67,19 @@ export class RepositorySyncer implements Syncer {
 			for (const goal of project.goals.update)
 				await projectsRepo.updateGoal(goal);
 		}
+
+		// Add tasks
+
+		for (const task of tasks.add) {
+			const id = await tasksRepo.add(task);
+			await this.notion.tasks.link(task, id);
+		}
+
+		// Remove tasks
+		for (const task of tasks.remove) await tasksRepo.remove(task);
+
+		// Update tasks
+		for (const task of tasks.update) await tasksRepo.update(task);
 	}
 }
 
