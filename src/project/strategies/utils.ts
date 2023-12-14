@@ -1,6 +1,7 @@
 import {diff} from '@framework/sync';
 import {NotionProject} from '@project/notion/models';
 import {TodoistProject} from '@project/todoist/models';
+import {GoalSyncStrategizer} from '@project/types';
 
 // Diff projects with their goals included
 
@@ -17,12 +18,31 @@ export function diffProjects(
 		})),
 	};
 }
+export type GoalDiff = ReturnType<typeof diffProjects>['pairs'][0]['goals'];
 
 // Filters
 
-export const isNotion = (
-	p: NotionProject | TodoistProject
-): p is NotionProject => 'notion' in p;
-export const isTodoist = (
-	p: NotionProject | TodoistProject
-): p is TodoistProject => 'todoist' in p;
+export const isNotion = <T extends {notion: object}>(p: object): p is T =>
+	'notion' in p;
+export const isTodoist = <T extends {todoist: object}>(p: object): p is T =>
+	'todoist' in p;
+
+export const applyGoalStrategyAndFilter = (
+	pairs: ReturnType<typeof diffProjects>['pairs'],
+	goalStrategizer: GoalSyncStrategizer
+) =>
+	pairs
+		.map(p => ({
+			...p,
+			goals: {
+				...goalStrategizer(p.goals),
+				onlySyncGoals: p.differences.length === 0,
+			},
+		}))
+		.filter(
+			p =>
+				p.differences.length +
+				p.goals.add.length +
+				p.goals.remove.length +
+				p.goals.update.length
+		);

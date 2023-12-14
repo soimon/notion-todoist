@@ -1,6 +1,6 @@
 import {ProjectSyncStrategy, ProjectSyncer} from '@project/types';
 
-const TAB_PREFIX = '\u2192  ';
+const TAB_PREFIX = '   ';
 const PROJECT_PREFIX = `${TAB_PREFIX}📦 `;
 const GOAL_PREFIX = `${TAB_PREFIX}🎯 `;
 
@@ -33,13 +33,14 @@ export class ProjectSyncLogger implements ProjectSyncer {
 
 	private logProjects(strategy: ProjectSyncStrategy['notion' | 'todoist']) {
 		const {add, remove, update} = strategy;
-		if (add.length + remove.length + update.length > 0)
+		const updateCount = countUpdates(update);
+		if (add.length + remove.length + updateCount > 0)
 			console.log(`${TAB_PREFIX}Projects`);
 		if (add.length > 0) console.log(`${PROJECT_PREFIX}Added    ${add.length}`);
 		if (remove.length > 0)
-			console.log(`${PROJECT_PREFIX}📦 Removed  ${remove.length}`);
-		if (update.length > 0)
-			console.log(`${PROJECT_PREFIX}📦 Updated  ${update.length}`);
+			console.log(`${PROJECT_PREFIX} Removed  ${remove.length}`);
+		if (updateCount > 0)
+			console.log(`${PROJECT_PREFIX} Updated  ${updateCount}`);
 	}
 
 	private logGoals(strategy: ProjectSyncStrategy['notion' | 'todoist']) {
@@ -54,12 +55,22 @@ export class ProjectSyncLogger implements ProjectSyncer {
 		strategy: ProjectSyncStrategy['notion' | 'todoist']
 	): {added: number; removed: number; updated: number} {
 		const {add, remove, update} = strategy;
-		const added = add.reduce((acc, cur) => acc + cur.goals.length, 0);
-		const removed = remove.reduce((acc, cur) => acc + cur.goals.length, 0);
+		const added =
+			add.reduce((acc, cur) => acc + cur.goals.length, 0) +
+			update.reduce((acc, cur) => acc + cur.goals.add.length, 0);
+		const removed =
+			remove.reduce((acc, cur) => acc + cur.goals.length, 0) +
+			update.reduce((acc, cur) => acc + cur.goals.remove.length, 0);
 		const updated = update.reduce(
 			(acc, cur) => acc + cur.goals.update.length,
 			0
 		);
 		return {added, removed, updated};
 	}
+}
+
+function countUpdates(
+	update: ProjectSyncStrategy['notion' | 'todoist']['update']
+) {
+	return update.filter(p => !p.goals.onlySyncGoals).length;
 }

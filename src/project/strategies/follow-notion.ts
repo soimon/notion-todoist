@@ -1,5 +1,12 @@
 import {GoalSyncStrategizer, ProjectSyncStrategizer} from '@project/types';
-import {diffProjects, isNotion, isTodoist} from './utils';
+import {
+	applyGoalStrategyAndFilter,
+	diffProjects,
+	isNotion,
+	isTodoist,
+} from './utils';
+import {NotionGoal, NotionProject} from '@project/notion/models';
+import {TodoistGoal, TodoistProject} from '@project/todoist/models';
 
 export const followNotionProjectStrategy: ProjectSyncStrategizer = (
 	notion,
@@ -10,22 +17,25 @@ export const followNotionProjectStrategy: ProjectSyncStrategizer = (
 	return {
 		notion: {add: [], remove: [], update: []},
 		todoist: {
-			add: diff.loners.filter(isNotion),
-			remove: diff.loners.filter(isTodoist),
-			update: diff.pairs
-				.filter(p => p.differences.length)
-				.map(p => ({
-					...p.notion,
-					goals: goalStrategy(p.notion.goals, p.todoist.goals),
-				})),
+			add: diff.loners.filter(isNotion<NotionProject>),
+			remove: diff.loners.filter(isTodoist<TodoistProject>),
+			update: applyGoalStrategyAndFilter(diff.pairs, goalStrategy).map(
+				({notion, goals}) => ({
+					...notion,
+					goals,
+				})
+			),
 		},
 	};
 };
 
-export const followNotionGoalStrategy: GoalSyncStrategizer = (
-	notion,
-	todoist
-) => {
-	console.log(notion, todoist);
-	return {add: [], remove: [], update: []};
+export const followNotionGoalStrategy: GoalSyncStrategizer = ({
+	loners,
+	pairs,
+}) => {
+	return {
+		add: loners.filter(isNotion<NotionGoal>),
+		remove: loners.filter(isTodoist<TodoistGoal>),
+		update: pairs.filter(p => p.differences.length).map(p => p.notion),
+	};
 };

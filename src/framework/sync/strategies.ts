@@ -15,4 +15,9 @@ type PlatformSyncStrategy<T1 extends Project, T2 extends Project> = KeyValue<
 	}
 >;
 
-export type GoalSyncStrategy = {add: Goal[]; remove: Goal[]; update: Goal[]};
+export type GoalSyncStrategy = {
+	add: Goal[];
+	remove: Goal[];
+	update: Goal[];
+	onlySyncGoals?: boolean;
+};
