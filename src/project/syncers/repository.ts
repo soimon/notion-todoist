@@ -1,9 +1,7 @@
-import {TemporaryId, TodoistSyncApi} from '@lib/todoist';
+import {TemporaryId} from '@lib/todoist';
 import {NotionGoal, NotionProject, NotionTask} from '@project/notion/models';
-import {NotionTaskRepository} from '@project/notion/repositories';
-import {NotionProjectRepository} from '@project/notion/repositories/projects';
-import {TodoistTaskRepository} from '@project/todoist/repositories';
-import {TodoistProjectRepository} from '@project/todoist/repositories/projects';
+import {NotionRepository} from '@project/notion/repositories';
+import {TodoistRepository} from '@project/todoist/repositories';
 import {
 	ProjectSyncStrategy,
 	SyncStrategy,
@@ -13,9 +11,8 @@ import {
 
 export class RepositorySyncer implements Syncer {
 	constructor(
-		private notion: NotionRepos,
-		private todoist: TodoistRepos,
-		private todoistSyncApi: TodoistSyncApi
+		private notion: NotionRepository,
+		private todoist: TodoistRepository
 	) {}
 
 	async sync({projects, tasks}: SyncStrategy) {
@@ -81,7 +78,7 @@ export class RepositorySyncer implements Syncer {
 
 		// Linking
 
-		const syncIds = await this.todoistSyncApi.commit();
+		const syncIds = await this.todoist.commit();
 		if (syncIds)
 			for (const [temp, syncId] of syncIds) {
 				const item = idMapping[temp];
@@ -93,13 +90,3 @@ export class RepositorySyncer implements Syncer {
 			}
 	}
 }
-
-export type NotionRepos = {
-	projects: NotionProjectRepository;
-	tasks: NotionTaskRepository;
-};
-
-export type TodoistRepos = {
-	projects: TodoistProjectRepository;
-	tasks: TodoistTaskRepository;
-};

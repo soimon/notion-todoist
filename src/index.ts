@@ -1,7 +1,8 @@
 require('module-alias/register');
 import {TodoistApi} from '@doist/todoist-api-typescript';
+import {TodoistSyncApi} from '@lib/todoist';
 import {Client} from '@notionhq/client';
-import {NotionTaskRepository} from '@project/notion/repositories';
+import {NotionRepository} from '@project/notion/repositories';
 import {
 	doNothingProjectStrategy,
 	doNothingTaskStrategy,
@@ -11,15 +12,11 @@ import {
 	followNotionTaskStrategy,
 } from '@project/strategies/follow-notion';
 import {SyncLogger} from '@project/syncers/logger';
-import {NotionRepos, TodoistRepos} from '@project/syncers/repository';
-import {TodoistTaskRepository} from '@project/todoist/repositories';
+import {TodoistRepository} from '@project/todoist/repositories';
 import {SyncStrategy} from '@project/types';
 import dotenv from 'dotenv';
 import {log} from './framework/utils/dev';
-import {NotionProjectRepository} from './project/notion/repositories/projects';
 import {RepositorySyncer} from './project/syncers/repository';
-import {TodoistProjectRepository} from './project/todoist/repositories/projects';
-import {TodoistSyncApi} from '@lib/todoist';
 dotenv.config();
 console.clear();
 
@@ -31,7 +28,7 @@ async function main() {
 
 	console.log('Connecting to apis...');
 	console.time('Elapsed');
-	const {notion, todoist, todoistSyncApi} = createRepositories();
+	const {notion, todoist} = createRepositories();
 	console.timeEnd('Elapsed');
 
 	console.log('\nFetching data...');
@@ -51,55 +48,32 @@ async function main() {
 
 	// Sync projects
 
-	sync(
-		{projects: projectStrategy, tasks: taskStrategy},
-		notion,
-		todoist,
-		todoistSyncApi
-	);
+	sync({projects: projectStrategy, tasks: taskStrategy}, notion, todoist);
 }
 
-main();
+const createRepositories = () => ({
+	notion: new NotionRepository(
+		new Client({
+			auth: process.env.NOTION_TOKEN,
+		}),
+		process.env.NOTION_DB_PROJECTS,
+		process.env.NOTION_DB_GOALS,
+		process.env.NOTION_DB_TASKS
+	),
+	todoist: new TodoistRepository(
+		new TodoistApi(process.env.TODOIST_TOKEN),
+		new TodoistSyncApi(process.env.TODOIST_TOKEN),
+		process.env.TODOIST_PROJECT_ROOT
+	),
+});
 
-function createRepositories(): {
-	notion: NotionRepos;
-	todoist: TodoistRepos;
-	todoistSyncApi: TodoistSyncApi;
-} {
-	const notionApi = new Client({
-		auth: process.env.NOTION_TOKEN,
-	});
-	const todoistApi = new TodoistApi(process.env.TODOIST_TOKEN);
-	const todoistSyncApi = new TodoistSyncApi(process.env.TODOIST_TOKEN);
-
-	return {
-		notion: {
-			projects: new NotionProjectRepository(
-				notionApi,
-				process.env.NOTION_DB_PROJECTS,
-				process.env.NOTION_DB_GOALS
-			),
-			tasks: new NotionTaskRepository(notionApi, process.env.NOTION_DB_TASKS),
-		},
-		todoist: {
-			projects: new TodoistProjectRepository(
-				todoistApi,
-				todoistSyncApi,
-				process.env.TODOIST_PROJECT_ROOT
-			),
-			tasks: new TodoistTaskRepository(todoistApi, todoistSyncApi),
-		},
-		todoistSyncApi: todoistSyncApi,
-	};
-}
-
-async function fetchNotion({projects, tasks}: NotionRepos) {
+async function fetchNotion({projects, tasks}: NotionRepository) {
 	const notionProjects = await projects.getProjects();
 	const notionTasks = await tasks.getSyncCandidates(new Date());
 	return {notionProjects, notionTasks};
 }
 
-async function fetchTodoist({projects, tasks}: TodoistRepos) {
+async function fetchTodoist({projects, tasks}: TodoistRepository) {
 	const todoistProjects = await projects.getProjects();
 	const todoistTasks = await tasks.getSyncCandidates(todoistProjects);
 	return {todoistProjects, todoistTasks};
@@ -107,15 +81,14 @@ async function fetchTodoist({projects, tasks}: TodoistRepos) {
 
 function sync(
 	strategies: SyncStrategy,
-	notion: NotionRepos,
-	todoist: TodoistRepos,
-	todoistSyncApi: TodoistSyncApi
+	notion: NotionRepository,
+	todoist: TodoistRepository
 ) {
 	log('strategy-projects', strategies.projects);
 	log('strategy-tasks', strategies.tasks);
 
-	const syncer = new SyncLogger(
-		new RepositorySyncer(notion, todoist, todoistSyncApi)
-	);
+	const syncer = new SyncLogger(new RepositorySyncer(notion, todoist));
 	syncer.sync(strategies);
 }
+
+main();
