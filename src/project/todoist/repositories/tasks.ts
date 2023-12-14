@@ -1,5 +1,5 @@
 import {TodoistApi} from '@doist/todoist-api-typescript';
-import {TodoistTask} from '../models';
+import {TodoistProject, TodoistTask} from '../models';
 import {with404Check} from './utils';
 
 // Repository for Todoist tasks.
@@ -9,24 +9,32 @@ export class TodoistTaskRepository {
 
 	// Fetching
 
-	async getSyncCandidates(): Promise<TodoistTask[]> {
-		// TODO: Get subtasks of all projects
-		const tasks = await this.api.getTasks({
-			projectId: process.env.TODOIST_PROJECT_ROOT,
-		});
-		return tasks.map(
-			(task): TodoistTask => ({
-				syncId: task.id,
-				content: task.content,
-				isCompleted: task.isCompleted,
-				scheduled: task.due?.date ? new Date(task.due.date) : undefined,
-				todoist: {
-					description: task.description,
-					projectId: task.projectId,
-					sectionId: task.sectionId,
-				},
-			})
+	async getSyncCandidates(projects: TodoistProject[]): Promise<TodoistTask[]> {
+		const tasks = await Promise.all(
+			projects.map(({syncId}) => this.getTasksFor(syncId))
 		);
+		return tasks.flat();
+	}
+
+	private async getTasksFor(projectId: string) {
+		const tasks = await this.api.getTasks({
+			projectId,
+		});
+		return tasks
+			.filter(({sectionId}) => sectionId)
+			.map(
+				(task): TodoistTask => ({
+					syncId: task.id,
+					content: task.content,
+					isCompleted: task.isCompleted,
+					scheduled: task.due?.date ? new Date(task.due.date) : undefined,
+					todoist: {
+						description: task.description,
+						projectId: task.projectId,
+						sectionId: task.sectionId,
+					},
+				})
+			);
 	}
 
 	// Altering

@@ -24,7 +24,7 @@ export class NotionTaskRepository {
 			...(await this.getOpenTasks()),
 		];
 		const uniqueResults = results.filter(
-			(v, i, a) => a.findIndex(t => t.syncId === v.syncId) === i
+			(v, i, a) => a.findIndex(t => t.notion.id === v.notion.id) === i
 		);
 		return uniqueResults;
 	}

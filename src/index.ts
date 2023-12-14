@@ -29,19 +29,20 @@ async function main() {
 		notionTasksRepo,
 		todoistTasksRepo,
 	} = createRepositories();
-	const notionProjects = await notionProjectsRepo.getProjects();
-	const todoistProjects = await todoistProjectsRepo.getProjects();
-	const notionTasks = await notionTasksRepo.getSyncCandidates(new Date());
-	const todoistTasks = await todoistTasksRepo.getSyncCandidates();
+	const [{notionProjects, notionTasks}, {todoistProjects, todoistTasks}] =
+		await Promise.all([
+			fetchNotion(notionProjectsRepo, notionTasksRepo),
+			fetchTodoist(todoistProjectsRepo, todoistTasksRepo),
+		]);
 	console.timeEnd('Elapsed');
 
 	// Sync projects
 
 	if (SYNC_PROJECTS) {
-		syncProjects(
-			{notion: notionProjects, todoist: todoistProjects},
-			{notion: notionProjectsRepo, todoist: todoistProjectsRepo}
-		);
+		// syncProjects(
+		// 	{notion: notionProjects, todoist: todoistProjects},
+		// 	{notion: notionProjectsRepo, todoist: todoistProjectsRepo}
+		// );
 	}
 
 	// Sync tasks
@@ -135,6 +136,24 @@ function createRepositories() {
 		notionTasksRepo,
 		todoistTasksRepo,
 	};
+}
+
+async function fetchTodoist(
+	projects: TodoistProjectRepository,
+	tasks: TodoistTaskRepository
+) {
+	const todoistProjects = await projects.getProjects();
+	const todoistTasks = await tasks.getSyncCandidates(todoistProjects);
+	return {todoistProjects, todoistTasks};
+}
+
+async function fetchNotion(
+	projects: NotionProjectRepository,
+	tasks: NotionTaskRepository
+) {
+	const notionProjects = await projects.getProjects();
+	const notionTasks = await tasks.getSyncCandidates(new Date());
+	return {notionProjects, notionTasks};
 }
 
 function syncProjects(
