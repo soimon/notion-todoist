@@ -20,10 +20,18 @@ export class RepositorySyncer implements Syncer {
 		await this.syncTodoist(projects.todoist, tasks.todoist);
 	}
 
+	//--------------------------------------------------------------------------
+	// Notion syncing
+	//--------------------------------------------------------------------------
+
 	private async syncNotion(
 		projects: ProjectSyncStrategy['notion'],
 		tasks: TaskSyncStrategy['notion']
 	) {}
+
+	//--------------------------------------------------------------------------
+	// Todoist syncing
+	//--------------------------------------------------------------------------
 
 	private async syncTodoist(
 		projects: ProjectSyncStrategy['todoist'],
