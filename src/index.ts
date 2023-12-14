@@ -9,6 +9,7 @@ import {NotionProjectRepository} from './project/notion/repositories/projects';
 import {RepositoryProjectSyncer} from './project/syncers/repository';
 import {TodoistProjectRepository} from './project/todoist/repositories/projects';
 dotenv.config();
+console.clear();
 
 async function main() {
 	// Create repositories
