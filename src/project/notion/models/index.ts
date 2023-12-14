@@ -1,6 +1,8 @@
 import {Goal, Project, Task} from '@framework/models';
 import {NotionPage} from '@lib/notion';
 
+// Models
+
 export type NotionTask = Task & {
 	notion: {
 		id: NotionPage<{}>['id'];
@@ -23,12 +25,29 @@ export type NotionGoal = Goal & {
 	};
 };
 
-export enum States {
-	NotStarted = 'Not started',
-	InProgress = 'In progress',
+// Business logic related to enums
+
+enum ProjectStates {
+	Outlining = '2: Outlining',
+	InProgress = '3: In progress',
+	Wrapping = 'Wrapping',
+}
+
+enum GoalStates {
+	Paused = 'Paused',
+	Done = 'Done',
+}
+
+enum TaskStates {
 	Done = 'Done',
 	Cut = 'Cut',
 }
 
-export const isCompleted = (state: string): boolean =>
-	([States.Done, States.Cut] as string[]).includes(state);
+export const inProgressProjectStates: string[] = [
+	ProjectStates.Outlining,
+	ProjectStates.InProgress,
+	ProjectStates.Wrapping,
+];
+export const blockedGoalStates: string[] = [GoalStates.Paused];
+export const closedGoalStates: string[] = [GoalStates.Done];
+export const closedTaskStates: string[] = [TaskStates.Done, TaskStates.Cut];

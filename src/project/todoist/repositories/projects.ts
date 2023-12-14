@@ -2,6 +2,7 @@ import {TodoistApi} from '@doist/todoist-api-typescript';
 import {TodoistGoal, TodoistProject} from '../models';
 import groupBy from 'object.groupby';
 import {Project} from '@framework/models';
+import {with404Check} from './utils';
 
 export class TodoistProjectRepository {
 	constructor(
@@ -40,7 +41,7 @@ export class TodoistProjectRepository {
 	}
 
 	private async fetchProjects() {
-		return await this.api
+		return this.api
 			.getProjects()
 			.then(p => p.filter(p => p.parentId === this.rootProject));
 	}
@@ -65,9 +66,11 @@ export class TodoistProjectRepository {
 	async updateProject(
 		project: Pick<Project, 'syncId' | 'name' | 'isBlocked'>
 	): Promise<void> {
-		await this.api.updateProject(project.syncId, {
-			name: applyLockInfo(project.name, project.isBlocked),
-		});
+		await with404Check(
+			this.api.updateProject(project.syncId, {
+				name: applyLockInfo(project.name, project.isBlocked),
+			})
+		);
 	}
 
 	async addGoal(
@@ -88,9 +91,11 @@ export class TodoistProjectRepository {
 	async updateGoal(
 		goal: Pick<Project, 'syncId' | 'name' | 'isBlocked'>
 	): Promise<void> {
-		await this.api.updateSection(goal.syncId, {
-			name: applyLockInfo(goal.name, goal.isBlocked),
-		});
+		await with404Check(
+			this.api.updateSection(goal.syncId, {
+				name: applyLockInfo(goal.name, goal.isBlocked),
+			})
+		);
 	}
 
 	/**
