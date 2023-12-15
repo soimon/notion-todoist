@@ -1,43 +1,43 @@
 {
-  "name": "notion-todoist",
-  "version": "1.0.0",
-  "description": "",
-  "main": "build/src/index.js",
-  "types": "build/src/index.d.ts",
-  "scripts": {
-    "lint": "gts lint",
-    "clean": "gts clean",
-    "compile": "tsc",
-    "fix": "gts fix",
-    "run": "node --no-print-code .",
-    "watch": "tsc-watch --onSuccess \"npm run run\""
-  },
-  "author": "soimon",
-  "license": "ISC",
-  "engines": {
-    "node": ">=12.0.0"
-  },
-  "devDependencies": {
-    "@types/node": "20.8.2",
-    "@types/object.groupby": "^1.0.3",
-    "@types/uuid": "^9.0.7",
-    "gts": "^5.2.0",
-    "tsc-watch": "^6.0.4",
-    "type-fest": "^4.8.3",
-    "typescript": "~5.2.0"
-  },
-  "dependencies": {
-    "@doist/todoist-api-typescript": "^3.0.1",
-    "@notionhq/client": "^2.2.14",
-    "dotenv": "^16.3.1",
-    "module-alias": "^2.2.3",
-    "node-fetch": "^2.7.0",
-    "object.groupby": "^1.0.1",
-    "uuid": "^9.0.1"
-  },
-  "_moduleAliases": {
-    "@framework": "build/src/framework",
-    "@project": "build/src/project",
-    "@lib": "build/src/lib"
-  }
+	"name": "notion-todoist",
+	"version": "1.0.1",
+	"description": "",
+	"main": "build/src/index.js",
+	"types": "build/src/index.d.ts",
+	"scripts": {
+		"lint": "gts lint",
+		"clean": "gts clean",
+		"compile": "tsc",
+		"fix": "gts fix",
+		"run": "node --no-print-code .",
+		"watch": "tsc-watch --onSuccess \"npm run run\""
+	},
+	"author": "soimon",
+	"license": "ISC",
+	"engines": {
+		"node": ">=12.0.0"
+	},
+	"devDependencies": {
+		"@types/node": "20.8.2",
+		"@types/object.groupby": "^1.0.3",
+		"@types/uuid": "^9.0.7",
+		"gts": "^5.2.0",
+		"tsc-watch": "^6.0.4",
+		"type-fest": "^4.8.3",
+		"typescript": "~5.2.0"
+	},
+	"dependencies": {
+		"@doist/todoist-api-typescript": "^3.0.1",
+		"@notionhq/client": "^2.2.14",
+		"dotenv": "^16.3.1",
+		"module-alias": "^2.2.3",
+		"node-fetch": "^2.7.0",
+		"object.groupby": "^1.0.1",
+		"uuid": "^9.0.1"
+	},
+	"_moduleAliases": {
+		"@framework": "build/src/framework",
+		"@project": "build/src/project",
+		"@lib": "build/src/lib"
+	}
 }
