@@ -13,6 +13,7 @@ jobs:
         with:
           latest: true
           tarBall: true
+          zipBall: false
           out-file-path: 'release'
           extract: true
 
@@ -26,10 +27,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd release/soimon-notion-todoist-${{steps.download.outputs.tag_name}}
+          cd release/package
           npm install
 
       - name: Run Node
         run: |
-          cd release/soimon-notion-todoist-${{steps.download.outputs.tag_name}}
+          cd release/package
           node .
