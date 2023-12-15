@@ -32,8 +32,13 @@ async function main() {
 
 	console.log('\nFetching data...');
 	console.time('Elapsed');
-	const [{notionProjects, notionTasks}, {todoistProjects, todoistTasks}] =
-		await Promise.all([fetchNotion(notion), fetchTodoist(todoist)]);
+	const [
+		{projects: notionProjects, tasks: notionTasks},
+		{projects: todoistProjects, tasks: todoistTasks},
+	] = await Promise.all([
+		notion.fetchSyncCandidates(new Date(new Date())),
+		todoist.fetchSyncCandidates(''),
+	]);
 	console.timeEnd('Elapsed');
 
 	// Determine stategies
@@ -64,18 +69,6 @@ const createRepositories = () => ({
 		process.env.TODOIST_PROJECT_ROOT
 	),
 });
-
-async function fetchNotion({projects, tasks}: NotionRepository) {
-	const notionProjects = await projects.getProjects();
-	const notionTasks = await tasks.getSyncCandidates(new Date());
-	return {notionProjects, notionTasks};
-}
-
-async function fetchTodoist({projects, tasks}: TodoistRepository) {
-	const todoistProjects = await projects.getProjects();
-	const todoistTasks = await tasks.getSyncCandidates(todoistProjects);
-	return {todoistProjects, todoistTasks};
-}
 
 function sync(
 	strategies: SyncStrategy,

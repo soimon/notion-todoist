@@ -19,4 +19,10 @@ export class NotionRepository {
 		);
 		this.tasks = new NotionTaskRepository(api, taskDatabase);
 	}
+
+	async fetchSyncCandidates(since: Date) {
+		const projects = await this.projects.getProjects();
+		const tasks = await this.tasks.getSyncCandidates(since);
+		return {projects, tasks};
+	}
 }

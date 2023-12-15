@@ -14,6 +14,12 @@ export class TodoistRepository {
 		this.tasks = new TodoistTaskRepository(api);
 	}
 
+	async fetchSyncCandidates(previousSyncToken: string) {
+		const projects = await this.projects.getProjects();
+		const tasks = await this.tasks.getSyncCandidates(projects);
+		return {projects, tasks};
+	}
+
 	async commit() {
 		return this.api.commit();
 	}
