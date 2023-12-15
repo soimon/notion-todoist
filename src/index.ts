@@ -16,6 +16,8 @@ import {SyncStrategy} from '@project/types';
 import dotenv from 'dotenv';
 import {log} from './framework/utils/dev';
 import {RepositorySyncer} from './project/syncers/repository';
+import {LastSyncInfoStore} from '@framework/sync';
+import {ConfigFileLastSyncInfoStore} from '@project/persistence/configfile';
 dotenv.config();
 console.clear();
 
@@ -23,9 +25,19 @@ const SYNC_PROJECTS = true;
 const SYNC_TASKS = true;
 
 async function main() {
+	// Sync info
+
+	const lastSyncInfoStore: LastSyncInfoStore = new ConfigFileLastSyncInfoStore(
+		'./cache/last-sync-info.json'
+	);
+	const lastSyncInfo = await lastSyncInfoStore.getLastSyncInfo();
+	if (typeof lastSyncInfo !== 'string')
+		console.log(`Last sync: ${lastSyncInfo.date}`);
+	else console.log(`Performing full sync`);
+
 	// Get data from repositories
 
-	console.log('Connecting to apis...');
+	console.log('\nConnecting to apis...');
 	console.time('Elapsed');
 	const {notion, todoist} = createRepositories();
 	console.timeEnd('Elapsed');
@@ -36,8 +48,8 @@ async function main() {
 		{projects: notionProjects, tasks: notionTasks},
 		{projects: todoistProjects, tasks: todoistTasks},
 	] = await Promise.all([
-		notion.fetchSyncCandidates(new Date(new Date())),
-		todoist.fetchSyncCandidates(''),
+		notion.fetchSyncCandidates(lastSyncInfo),
+		todoist.fetchSyncCandidates(lastSyncInfo),
 	]);
 	console.timeEnd('Elapsed');
 
@@ -52,7 +64,12 @@ async function main() {
 
 	// Sync projects
 
-	sync({projects: projectStrategy, tasks: taskStrategy}, notion, todoist);
+	await sync({projects: projectStrategy, tasks: taskStrategy}, notion, todoist);
+
+	// Store sync info
+
+	const token = await todoist.getLastSyncToken();
+	if (token) await lastSyncInfoStore.setLastSyncInfo(token);
 }
 
 const createRepositories = () => ({
@@ -70,7 +87,7 @@ const createRepositories = () => ({
 	),
 });
 
-function sync(
+async function sync(
 	strategies: SyncStrategy,
 	notion: NotionRepository,
 	todoist: TodoistRepository
@@ -79,7 +96,7 @@ function sync(
 	log('strategy-tasks', strategies.tasks);
 
 	const syncer = new SyncLogger(new RepositorySyncer(notion, todoist));
-	syncer.sync(strategies);
+	await syncer.sync(strategies);
 }
 
 main();

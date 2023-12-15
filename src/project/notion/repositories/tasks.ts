@@ -18,7 +18,7 @@ export class NotionTaskRepository {
 
 	// Fetching
 
-	async getSyncCandidates(since: Date) {
+	async getSyncCandidates(since?: Date) {
 		const results = [
 			...(await this.getChangedSince(since)),
 			...(await this.getOpenTasks()),
@@ -47,17 +47,19 @@ export class NotionTaskRepository {
 			],
 		});
 
-	private getChangedSince = async (date: Date) =>
-		(
-			await getChangedPages({
-				notion: this.api,
-				database: this.databaseId,
-				since: date,
-				schema: taskSchema,
-			})
-		)
-			.filter(r => r.properties.goal?.id)
-			.map(rowToModel);
+	private getChangedSince = async (date?: Date) =>
+		date
+			? (
+					await getChangedPages({
+						notion: this.api,
+						database: this.databaseId,
+						since: date,
+						schema: taskSchema,
+					})
+			  )
+					.filter(r => r.properties.goal?.id)
+					.map(rowToModel)
+			: [];
 
 	private query = async (filter: QueryFilters) =>
 		(

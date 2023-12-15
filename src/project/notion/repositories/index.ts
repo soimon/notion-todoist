@@ -1,6 +1,7 @@
 import {Client} from '@notionhq/client';
 import {NotionProjectRepository} from './projects';
 import {NotionTaskRepository} from './tasks';
+import {LastSyncInfo} from '@framework/sync';
 
 export class NotionRepository {
 	readonly projects: NotionProjectRepository;
@@ -20,9 +21,11 @@ export class NotionRepository {
 		this.tasks = new NotionTaskRepository(api, taskDatabase);
 	}
 
-	async fetchSyncCandidates(since: Date) {
+	async fetchSyncCandidates(lastSync: LastSyncInfo) {
 		const projects = await this.projects.getProjects();
-		const tasks = await this.tasks.getSyncCandidates(since);
+		const tasks = await this.tasks.getSyncCandidates(
+			typeof lastSync === 'string' ? undefined : lastSync.date
+		);
 		return {projects, tasks};
 	}
 }

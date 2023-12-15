@@ -19,6 +19,7 @@ export class TodoistSyncApi {
 	//-----------------------------------------------------------------
 
 	private loadedData: Snapshot | undefined;
+	private latestSyncToken: string | undefined;
 	loadedDiff: Snapshot | undefined;
 
 	async loadAll() {
@@ -43,7 +44,8 @@ export class TodoistSyncApi {
 			sections: Array.isArray(sections) ? sections : [],
 			tasks: Array.isArray(items) ? items : [],
 		};
-		return {data, syncToken: sync_token, fullSync: full_sync};
+		this.latestSyncToken = sync_token;
+		return {data, syncToken: `${sync_token}`, fullSync: Boolean(full_sync)};
 	}
 
 	getProjects = () => this.ensureLoaded().then(d => d?.projects ?? []);
@@ -53,6 +55,10 @@ export class TodoistSyncApi {
 	private async ensureLoaded() {
 		if (!this.loadedData) await this.loadAll();
 		return this.loadedData;
+	}
+
+	getLatestSyncToken() {
+		return this.latestSyncToken;
 	}
 
 	//-----------------------------------------------------------------
