@@ -58,10 +58,8 @@ function diffPairs<
 >(pairs: [T1 | T2, T1 | T2][], discriminatorA: D1, discriminatorB: D2) {
 	return pairs.map(([a, b]) => {
 		const differences = [] as (keyof (T1 | T2))[];
-		for (const key of Object.keys(a) as (keyof (T1 | T2))[]) {
-			if (typeof a[key] === 'object' || typeof b[key] === 'object') continue;
-			if (a[key] !== b[key]) differences.push(key);
-		}
+		for (const key of Object.keys(a) as (keyof (T1 | T2))[])
+			if (testForDifference<T1, T2>(a, b, key)) differences.push(key);
 		const d1 = discriminatorA in a ? a : discriminatorA in b ? b : undefined;
 		const d2 = discriminatorB in a ? a : discriminatorB in b ? b : undefined;
 		if (!d1 || !d2)
@@ -75,6 +73,29 @@ function diffPairs<
 		} as {differences: (keyof (T1 | T2))[]} & KeyValue<D1, T1> &
 			KeyValue<D2, T2>;
 	});
+}
+
+function testForDifference<T1 extends object, T2 extends object>(
+	a: T1 | T2,
+	b: T1 | T2,
+	key: keyof T1 & keyof T2
+) {
+	const va = a[key];
+	const vb = b[key];
+	if (typeof va === 'object' || typeof vb === 'object') {
+		if (
+			va &&
+			vb &&
+			typeof va === 'object' &&
+			typeof vb === 'object' &&
+			'getTime' in va &&
+			'getTime' in vb &&
+			typeof va.getTime === 'function' &&
+			typeof vb.getTime === 'function'
+		)
+			return va.getTime() !== vb.getTime();
+		else return false;
+	} else return va !== vb;
 }
 
 function findPairs<T>(
