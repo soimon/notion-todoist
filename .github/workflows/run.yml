@@ -8,13 +8,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: lastSyncInfo
-          path: ./release/package
-        continue-on-error: true
-
       - uses: robinraju/release-downloader@v1.8
         id: download
         with:
@@ -34,6 +27,12 @@ jobs:
           cd release/package
           npm install
 
+      - name: Cache lastSyncInfo
+        uses: actions/cache@v2
+        with:
+          path: ./release/package/last-sync-info.json
+          key: lastSyncInfo
+
       - name: Run Node
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
@@ -46,9 +45,3 @@ jobs:
         run: |
           cd release/package
           node .
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: lastSyncInfo
-          path: ./release/package/last-sync-info.json
