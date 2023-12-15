@@ -36,7 +36,7 @@ jobs:
           gist_id: d1836b5e23ebf7284c34a9cdca49a520
           file_name: last-sync-info.json
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT }}
 
       - name: Write sync file to disk
         run: echo "${{ steps.retrieve-sync.outputs.content }}" > ./release/package/last-sync-info.json
