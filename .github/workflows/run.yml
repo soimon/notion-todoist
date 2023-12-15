@@ -29,15 +29,14 @@ jobs:
           cd release/package
           npm install
 
-      - name: Get Date
-        id: get-date
-        run: echo "::set-output name=date::$(date +'%Y%m%d%H%M%S')"
-
-      - name: Cache lastSyncInfo
-        uses: actions/cache@v2
+      - name: Restore sync file
+        uses: UnlyEd/github-action-store-variable@v2.1.0
         with:
-          path: ./release/package/last-sync-info.json
-          key: lastSyncInfo-${{ steps.get-date.outputs.date }}
+          variables: LAST_SYNC_INFO
+
+      - name: Write sync file to disk
+        if: ${{ env.LAST_SYNC_INFO }} != ''
+        run: echo "$LAST_SYNC_INFO" > ./release/package/last-sync-info.json
 
       - name: Run Node
         env:
@@ -51,3 +50,12 @@ jobs:
         run: |
           cd release/package
           node .
+
+      - name: Read contents of new sync file
+        id: vars
+        run: echo "::set-output name=LAST_SYNC_INFO::$(cat ./release/package/last-sync-info.json)"
+
+      - name: Store the sync file
+        uses: UnlyEd/github-action-store-variable@v3.0
+        with:
+          variables: LAST_SYNC_INFO="${{ steps.vars.outputs.LAST_SYNC_INFO }}"
