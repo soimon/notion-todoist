@@ -28,8 +28,7 @@ jobs:
         run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
 
       - name: Package Application
-        run: |
-          npx npm-packlist --tarball ./notion-todoist-${{ steps.get_version.outputs.version }}.tgz
+        run: npm pack
         id: package
 
       - name: Create Release
