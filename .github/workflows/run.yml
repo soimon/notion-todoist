@@ -13,6 +13,7 @@ jobs:
         with:
           name: lastSyncInfo
           path: ./release/package
+        continue-on-error: true
 
       - uses: robinraju/release-downloader@v1.8
         id: download
