@@ -29,14 +29,15 @@ jobs:
           cd release/package
           npm install
 
-      - name: Restore sync file
-        uses: UnlyEd/github-action-store-variable@v2.1.0
+      - uses: sergeysova/gist-read-action@v1
+        name: Retrieve the sync file
+        id: retrieve-sync
         with:
-          variables: LAST_SYNC_INFO
+          gist_id: d1836b5e23ebf7284c34a9cdca49a520
+          file_name: last-sync-info.json
 
       - name: Write sync file to disk
-        if: ${{ env.LAST_SYNC_INFO }} != ''
-        run: echo "$LAST_SYNC_INFO" > ./release/package/last-sync-info.json
+        run: echo "${{ steps.retrieve-sync.outputs.content }}" > ./release/package/last-sync-info.json
 
       - name: Run Node
         env:
@@ -51,11 +52,13 @@ jobs:
           cd release/package
           node .
 
-      - name: Read contents of new sync file
-        id: vars
+      - name: Read contents of the new sync file
+        id: new-file
         run: echo "::set-output name=LAST_SYNC_INFO::$(cat ./release/package/last-sync-info.json)"
 
-      - name: Store the sync file
-        uses: UnlyEd/github-action-store-variable@v3.0
+      - uses: sergeysova/gist-write-action@v1
+        name: Store the sync file
         with:
-          variables: LAST_SYNC_INFO="${{ steps.vars.outputs.LAST_SYNC_INFO }}"
+          gist_id: d1836b5e23ebf7284c34a9cdca49a520
+          file_name: last-sync-info.json
+          content: '${{ steps.vars.outputs.LAST_SYNC_INFO }}'
