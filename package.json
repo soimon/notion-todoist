@@ -19,11 +19,9 @@
   },
   "devDependencies": {
     "@types/node": "20.8.2",
-    "@types/npm-packlist": "^7.0.3",
     "@types/object.groupby": "^1.0.3",
     "@types/uuid": "^9.0.7",
     "gts": "^5.2.0",
-    "npm-packlist": "^8.0.1",
     "tsc-watch": "^6.0.4",
     "type-fest": "^4.8.3",
     "typescript": "~5.2.0"
