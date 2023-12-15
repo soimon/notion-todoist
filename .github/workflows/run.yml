@@ -64,3 +64,5 @@ jobs:
           gist_id: d1836b5e23ebf7284c34a9cdca49a520
           file_name: last-sync-info.json
           content: '${{ steps.new-file.outputs.LAST_SYNC_INFO }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
