@@ -10,5 +10,6 @@ declare namespace NodeJS {
 		TODOIST_PROJECT_ROOT: string;
 
 		DEV: string | undefined;
+		IS_GITHUB_ACTION: string | undefined;
 	}
 }

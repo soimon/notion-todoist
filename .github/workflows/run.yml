@@ -8,6 +8,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: lastSyncInfo
+          path: ./release/package
+
       - uses: robinraju/release-downloader@v1.8
         id: download
         with:
@@ -22,9 +28,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: List directory contents
-        run: ls -la release
-
       - name: Install dependencies
         run: |
           cd release/package
@@ -38,6 +41,13 @@ jobs:
           NOTION_DB_GOALS: ${{ secrets.NOTION_DB_GOALS }}
           TODOIST_TOKEN: ${{ secrets.TODOIST_TOKEN }}
           TODOIST_PROJECT_ROOT: ${{ secrets.TODOIST_PROJECT_ROOT }}
+          IS_GITHUB_ACTION: true
         run: |
           cd release/package
           node .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: lastSyncInfo
+          path: ./release/package/last-sync-info.json

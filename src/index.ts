@@ -30,7 +30,7 @@ async function main() {
 	// Sync info
 
 	const lastSyncInfoStore: LastSyncInfoStore = new ConfigFileLastSyncInfoStore(
-		'./cache/last-sync-info.json'
+		'./last-sync-info.json'
 	);
 	const lastSyncInfo = await lastSyncInfoStore.getLastSyncInfo(SYNC_FORCE_FULL);
 
