@@ -1,0 +1,29 @@
+name: Run
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Release Asset
+        id: download
+        uses: i3h/download-release-asset@v1
+        with:
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.repository }}
+          tag: latest
+          file: project.tar.gz
+
+      - name: Extract tarball
+        run: tar -xzf ${{ steps.download.outputs.file }}
+
+      - name: Use Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'
+
+      - name: Run Node
+        run: node .
