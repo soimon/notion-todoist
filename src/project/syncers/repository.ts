@@ -27,7 +27,13 @@ export class RepositorySyncer implements Syncer {
 	private async syncNotion(
 		projects: ProjectSyncStrategy['notion'],
 		tasks: TaskSyncStrategy['notion']
-	) {}
+	) {
+		// Tasks
+
+		for (const task of tasks.add) await this.notion.tasks.add(task);
+		for (const task of tasks.update) await this.notion.tasks.update(task);
+		for (const task of tasks.remove) await this.notion.tasks.remove(task);
+	}
 
 	//--------------------------------------------------------------------------
 	// Todoist syncing

@@ -20,24 +20,26 @@ export class NotionProjectRepository {
 	// Fetching
 
 	async getProjects(): Promise<NotionProject[]> {
-		const projects = await this.fetchProjects();
 		const goals = await this.getGoals().then(g =>
 			groupBy(g, ({notion}) => notion.projectId)
 		);
-
-		return projects
+		const projects = (await this.fetchProjects())
 			.map(({id, properties}): NotionProject => {
+				const _goals = goals[id]?.sort(sortByBlocked) ?? [];
+				this.storeIdMappings(_goals);
 				return {
 					syncId: properties.syncId?.rich_text[0]?.plain_text ?? '',
 					name: properties.name?.title[0]?.plain_text ?? '',
-					isBlocked: goals[id]?.every(g => g.isBlocked) ?? false,
-					goals: goals[id]?.sort(sortByBlocked) ?? [],
+					isBlocked: _goals.every(g => g.isBlocked) ?? false,
+					goals: _goals,
 					notion: {
 						id,
 					},
 				};
 			})
 			.sort(sortByBlocked);
+		this.storeIdMappings(projects);
+		return projects;
 	}
 
 	private async getGoals(): Promise<NotionGoal[]> {
@@ -76,6 +78,23 @@ export class NotionProjectRepository {
 			schema: goalSchema,
 			filter: goalIsNotDoneOrOrphanedFilter,
 		});
+	}
+
+	// Id mapping
+
+	private idMappings: Record<
+		(NotionGoal | NotionProject)['syncId'],
+		(NotionGoal | NotionProject)['notion']['id']
+	> = {};
+
+	requireIdFromSyncId(syncId: string) {
+		const id = this.idMappings[syncId];
+		if (!id) throw new Error(`No goal/project found with sync ID ${syncId}`);
+		return id;
+	}
+
+	private storeIdMappings(items: (NotionGoal | NotionProject)[]) {
+		for (const item of items) this.idMappings[item.syncId] = item.notion.id;
 	}
 
 	// Altering

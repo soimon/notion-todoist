@@ -39,13 +39,13 @@ export async function getChangedPages<TSchema extends Schema>(
 				{
 					timestamp: 'last_edited_time',
 					last_edited_time: {
-						after: options.since.toISOString(),
+						on_or_after: options.since.toISOString(),
 					},
 				},
 				{
 					timestamp: 'created_time',
 					created_time: {
-						after: options.since.toISOString(),
+						on_or_after: options.since.toISOString(),
 					},
 				},
 			],

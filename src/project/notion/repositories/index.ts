@@ -18,7 +18,7 @@ export class NotionRepository {
 			projectDatabase,
 			goalDatabase
 		);
-		this.tasks = new NotionTaskRepository(api, taskDatabase);
+		this.tasks = new NotionTaskRepository(api, taskDatabase, this.projects);
 	}
 
 	async fetchSyncCandidates(lastSync: LastSyncInfo) {

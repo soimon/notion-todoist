@@ -33,6 +33,7 @@ async function main() {
 		'./cache/last-sync-info.json'
 	);
 	const lastSyncInfo = await lastSyncInfoStore.getLastSyncInfo(SYNC_FORCE_FULL);
+
 	if (typeof lastSyncInfo !== 'string')
 		console.log(`Last sync: ${lastSyncInfo.date}`);
 	else console.log(`Performing full sync`);

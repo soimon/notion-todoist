@@ -41,6 +41,7 @@ enum GoalStates {
 }
 
 enum TaskStates {
+	NotStarted = 'Not started',
 	Done = 'Done',
 	Cut = 'Cut',
 }
@@ -53,3 +54,6 @@ export const inProgressProjectStates: string[] = [
 export const blockedGoalStates: string[] = [GoalStates.Paused];
 export const closedGoalStates: string[] = [GoalStates.Done];
 export const closedTaskStates: string[] = [TaskStates.Done, TaskStates.Cut];
+export const completedTaskState = TaskStates.Done;
+export const newTaskState = TaskStates.NotStarted;
+export const cutTaskState = TaskStates.Cut;

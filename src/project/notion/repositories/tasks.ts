@@ -1,31 +1,40 @@
-import {Client} from '@notionhq/client';
-import {taskSchema} from './schemas';
+import {Task} from '@framework/models';
 import {
 	NotionPage,
 	QueryFilters,
 	getChangedPages,
 	queryDatabase,
 } from '@lib/notion';
-import {NotionTask, closedTaskStates} from '../models';
+import {Client} from '@notionhq/client';
+import {
+	NotionTask,
+	closedTaskStates,
+	completedTaskState,
+	cutTaskState,
+	newTaskState,
+} from '../models';
+import {taskSchema} from './schemas';
+import {NotionProjectRepository} from './projects';
 
 // Repository
 
 export class NotionTaskRepository {
 	constructor(
 		private api: Client,
-		private databaseId: string
+		private databaseId: string,
+		private projects: NotionProjectRepository
 	) {}
 
 	// Fetching
 
 	async getSyncCandidates(since?: Date) {
-		const results = [
-			...(await this.getChangedSince(since)),
-			...(await this.getOpenTasks()),
-		];
+		const changed = await this.getChangedSince(since);
+		const open = await this.getOpenTasks();
+		const results = [...changed, ...open];
 		const uniqueResults = results.filter(
 			(v, i, a) => a.findIndex(t => t.notion.id === v.notion.id) === i
 		);
+		this.storeIdMappings(uniqueResults);
 		return uniqueResults;
 	}
 
@@ -47,17 +56,18 @@ export class NotionTaskRepository {
 			],
 		});
 
-	private getChangedSince = async (date?: Date) =>
-		date
+	private getChangedSince = async (since?: Date) =>
+		since
 			? (
 					await getChangedPages({
 						notion: this.api,
 						database: this.databaseId,
-						since: date,
+						since,
 						schema: taskSchema,
 					})
 			  )
-					.filter(r => r.properties.goal?.id)
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					.filter(r => (r.properties.goalSyncId?.formula as any)?.string)
 					.map(rowToModel)
 			: [];
 
@@ -71,10 +81,87 @@ export class NotionTaskRepository {
 			})
 		).map(rowToModel);
 
+	// Id mapping
+
+	private idMappings: Record<NotionTask['syncId'], NotionTask['notion']['id']> =
+		{};
+
+	private requireTaskIdFromSyncId(syncId: string) {
+		const id = this.idMappings[syncId];
+		if (!id) throw new Error(`No task found with sync ID ${syncId}`);
+		return id;
+	}
+
+	private storeIdMappings(tasks: NotionTask[]) {
+		for (const task of tasks) this.idMappings[task.syncId] = task.notion.id;
+	}
+
 	// Altering
 
+	async add(task: Task) {
+		const goalId = this.projects.requireIdFromSyncId(task.goalSyncId);
+		return await this.api.pages.create({
+			parent: {database_id: this.databaseId},
+			properties: {
+				[taskSchema.title.id]: {
+					title: [{type: 'text', text: {content: task.content}}],
+				},
+				[taskSchema.goal.id]: {
+					relation: [{id: goalId}],
+				},
+				[taskSchema.status.id]: {
+					status: {name: task.isCompleted ? completedTaskState : newTaskState},
+				},
+				[taskSchema.scheduled.id]: {
+					date: task.scheduled
+						? {start: task.scheduled.toISOString().split('T')[0]!}
+						: null,
+				},
+			},
+		});
+	}
+
+	async update(task: Task) {
+		const goalId = this.projects.requireIdFromSyncId(task.goalSyncId);
+		const notionId = this.requireTaskIdFromSyncId(task.syncId);
+		return await this.api.pages.update({
+			page_id: notionId,
+			properties: {
+				[taskSchema.title.id]: {
+					title: [{type: 'text', text: {content: task.content}}],
+				},
+				[taskSchema.goal.id]: {
+					relation: [{id: goalId}],
+				},
+				[taskSchema.scheduled.id]: {
+					date: task.scheduled
+						? {start: task.scheduled.toISOString().split('T')[0]!}
+						: null,
+				},
+				...(task.isCompleted
+					? {
+							[taskSchema.status.id]: {
+								status: {name: completedTaskState},
+							},
+					  }
+					: {}),
+			},
+		});
+	}
+
+	async remove(task: NotionTask) {
+		return await this.api.pages.update({
+			page_id: task.notion.id,
+			properties: {
+				[taskSchema.status.id]: {
+					status: {name: cutTaskState},
+				},
+			},
+		});
+	}
+
 	async link(task: NotionTask, syncId: string) {
-		const response = await this.api.pages.update({
+		return await this.api.pages.update({
 			page_id: task.notion.id,
 			properties: {
 				[taskSchema.syncId.id]: {
@@ -82,7 +169,6 @@ export class NotionTaskRepository {
 				},
 			},
 		});
-		return response;
 	}
 }
 
