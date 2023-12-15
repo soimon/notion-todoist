@@ -9,6 +9,7 @@ jobs:
 
     steps:
       - uses: robinraju/release-downloader@v1.8
+        id: download
         with:
           latest: true
           tarBall: true
@@ -25,10 +26,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd release
+          cd release/soimon-notion-todoist-${{steps.download.outputs.tag_name}}
           npm install
 
       - name: Run Node
         run: |
-          cd release
+          cd release/soimon-notion-todoist-${{steps.download.outputs.tag_name}}
           node .
