@@ -8,22 +8,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download Release Asset
-        id: download
-        uses: i3h/download-release-asset@v1
+      - uses: robinraju/release-downloader@v1.8
         with:
-          owner: ${{ github.repository_owner }}
-          repo: ${{ github.repository }}
-          tag: latest
-          file: project.tar.gz
-
-      - name: Extract tarball
-        run: tar -xzf ${{ steps.download.outputs.file }}
+          latest: true
+          tarBall: true
+          out-file-path: 'release'
+          extract: true
 
       - name: Use Node.js
         uses: actions/setup-node@v2
         with:
           node-version: '20'
 
+      - name: Install dependencies
+        run: |
+          cd download
+          npm install
+
       - name: Run Node
-        run: node .
+        run: |
+          cd download
+          node .
