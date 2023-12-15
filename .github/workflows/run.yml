@@ -33,7 +33,7 @@ jobs:
         name: Retrieve the sync file
         id: retrieve-sync
         with:
-          gist_id: c31b79e8a37fbf86e4fea699fef6b9c4
+          gist_id: 5cb9abe9d92507f9687bd7ec2c7ce239
           file_name: last-sync-info.json
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
@@ -64,7 +64,7 @@ jobs:
       - uses: sergeysova/gist-write-action@v1
         name: Store the sync file
         with:
-          gist_id: c31b79e8a37fbf86e4fea699fef6b9c4
+          gist_id: 5cb9abe9d92507f9687bd7ec2c7ce239
           file_name: last-sync-info.json
           content: '${{ steps.new-file.outputs.LAST_SYNC_INFO }}'
         env:
