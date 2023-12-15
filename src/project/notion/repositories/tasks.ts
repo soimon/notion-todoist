@@ -12,6 +12,7 @@ import {
 	completedTaskState,
 	cutTaskState,
 	newTaskState,
+	progressionToState,
 } from '../models';
 import {taskSchema} from './schemas';
 import {NotionProjectRepository} from './projects';
@@ -110,7 +111,11 @@ export class NotionTaskRepository {
 					relation: [{id: goalId}],
 				},
 				[taskSchema.status.id]: {
-					status: {name: task.isCompleted ? completedTaskState : newTaskState},
+					status: {
+						name: task.isCompleted
+							? completedTaskState
+							: progressionToState[task.progression] ?? newTaskState,
+					},
 				},
 				[taskSchema.scheduled.id]: {
 					date: task.scheduled
@@ -124,6 +129,7 @@ export class NotionTaskRepository {
 	async update(task: Task) {
 		const goalId = this.projects.requireIdFromSyncId(task.goalSyncId);
 		const notionId = this.requireTaskIdFromSyncId(task.syncId);
+		const state = progressionToState[task.progression];
 		return await this.api.pages.update({
 			page_id: notionId,
 			properties: {
@@ -138,10 +144,10 @@ export class NotionTaskRepository {
 						? {start: task.scheduled.toISOString().split('T')[0]!}
 						: null,
 				},
-				...(task.isCompleted
+				...(task.isCompleted || state
 					? {
 							[taskSchema.status.id]: {
-								status: {name: completedTaskState},
+								status: {name: state ?? completedTaskState},
 							},
 					  }
 					: {}),
@@ -174,6 +180,10 @@ export class NotionTaskRepository {
 
 // Converts a Notion page row to a NotionTask model.
 
+const stateToProgression = Object.fromEntries(
+	Object.entries(progressionToState).map(([k, v]) => [v, k])
+) as Record<string, Task['progression']>;
+
 const rowToModel = ({
 	id,
 	properties: p,
@@ -184,6 +194,8 @@ const rowToModel = ({
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	goalSyncId: (p.goalSyncId?.formula as any)?.string ?? '',
 	content: p.title?.title[0]?.plain_text ?? '',
+	progression:
+		stateToProgression[p.status?.status?.name ?? ''] ?? 'not-started',
 	scheduled: p.scheduled?.date?.start
 		? new Date(p.scheduled?.date?.start)
 		: undefined,

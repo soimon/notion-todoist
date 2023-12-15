@@ -1,4 +1,4 @@
-import {Goal, Project, Task} from '@framework/models';
+import {Goal, Project, Task, TaskProgression} from '@framework/models';
 
 export type TodoistTask = Task & {
 	todoist: {
@@ -16,3 +16,14 @@ export type TodoistGoal = Goal & {
 		projectId: string;
 	};
 };
+
+// Task progression
+
+export const progressionToLabel: {[k in TaskProgression]: string | undefined} =
+	{
+		'not-started': undefined,
+		'should-delegate': 'To delegate',
+		delegated: 'Delegated',
+		'in-progress': 'In progress',
+		blocked: 'Blocked',
+	};

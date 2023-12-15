@@ -1,6 +1,6 @@
 import {Task} from '@framework/models';
 import {TemporaryId, TodoistSyncApi} from '@lib/todoist';
-import {TodoistProject, TodoistTask} from '../models';
+import {TodoistProject, TodoistTask, progressionToLabel} from '../models';
 
 // Repository for Todoist tasks.
 
@@ -31,6 +31,7 @@ export class TodoistTaskRepository {
 					content: task.content,
 					isCompleted: task.checked,
 					scheduled: task.due?.date ? new Date(task.due.date) : undefined,
+					progression: findProgression(task.labels),
 					todoist: {
 						description: task.description,
 					},
@@ -41,18 +42,23 @@ export class TodoistTaskRepository {
 	// Altering
 
 	add(task: Task): TemporaryId {
+		const label = progressionToLabel[task.progression];
 		return this.api.addTask({
 			content: task.content,
 			dueDate: makeDueString(task.scheduled),
 			sectionId: task.goalSyncId,
+			labels: label ? [label] : undefined,
 		});
 	}
 
 	update(newState: Task): void {
 		const id = newState.syncId;
+		const label = progressionToLabel[newState.progression];
+
 		this.api.updateTask(id, {
 			content: newState.content,
 			dueDate: makeDueString(newState.scheduled),
+			labels: label ? [label] : undefined,
 		});
 		if (newState.isCompleted) this.api.closeTask(id);
 		else this.api.reopenTask(id);
@@ -63,6 +69,16 @@ export class TodoistTaskRepository {
 		this.api.deleteTask(task.syncId);
 	}
 }
+
+// Find the first known tag
+
+const findProgression = (labels: string[]) =>
+	labelToProgression[labels.find(l => l in labelToProgression) ?? ''] ??
+	'not-started';
+
+const labelToProgression = Object.fromEntries(
+	Object.entries(progressionToLabel).map(([k, v]) => [v, k])
+) as Record<string, Task['progression']>;
 
 // Make a string like "2021-01-01" from a Date object.
 

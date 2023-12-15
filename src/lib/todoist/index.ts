@@ -167,6 +167,7 @@ export class TodoistSyncApi {
 			due: {date: task.dueDate},
 			priority: task.priority,
 			duration: task.duration,
+			labels: task.labels,
 		});
 	}
 
@@ -282,6 +283,7 @@ export type Snapshot = {
 		updated_at: string;
 		added_at: string;
 		is_deleted: boolean;
+		labels: string[];
 	}[];
 };
 type DueDate = {

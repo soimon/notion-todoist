@@ -1,4 +1,4 @@
-import {Goal, Project, Task} from '@framework/models';
+import {Goal, Project, Task, TaskProgression} from '@framework/models';
 import {NotionPage} from '@lib/notion';
 
 // Models
@@ -40,8 +40,12 @@ enum GoalStates {
 	Done = 'Done',
 }
 
-enum TaskStates {
+enum TaskState {
 	NotStarted = 'Not started',
+	ToDelegate = 'To delegate',
+	Delegated = 'Delegated',
+	InProgress = 'In progress',
+	Blocked = 'Blocked',
 	Done = 'Done',
 	Cut = 'Cut',
 }
@@ -51,9 +55,20 @@ export const inProgressProjectStates: string[] = [
 	ProjectStates.InProgress,
 	ProjectStates.Wrapping,
 ];
+
 export const blockedGoalStates: string[] = [GoalStates.Paused];
 export const closedGoalStates: string[] = [GoalStates.Done];
-export const closedTaskStates: string[] = [TaskStates.Done, TaskStates.Cut];
-export const completedTaskState = TaskStates.Done;
-export const newTaskState = TaskStates.NotStarted;
-export const cutTaskState = TaskStates.Cut;
+export const closedTaskStates: string[] = [TaskState.Done, TaskState.Cut];
+export const completedTaskState = TaskState.Done;
+export const newTaskState = TaskState.NotStarted;
+export const cutTaskState = TaskState.Cut;
+
+// Task progression
+
+export const progressionToState: {[k in TaskProgression]: TaskState} = {
+	'not-started': TaskState.NotStarted,
+	'should-delegate': TaskState.ToDelegate,
+	delegated: TaskState.Delegated,
+	'in-progress': TaskState.InProgress,
+	blocked: TaskState.Blocked,
+};

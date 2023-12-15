@@ -14,7 +14,15 @@ export type Goal = {
 export type Task = {
 	syncId: string;
 	goalSyncId: Goal['syncId'];
+	progression: TaskProgression;
 	isCompleted: boolean;
 	content: string;
 	scheduled?: Date;
 };
+
+export type TaskProgression =
+	| 'not-started'
+	| 'should-delegate'
+	| 'delegated'
+	| 'in-progress'
+	| 'blocked';
