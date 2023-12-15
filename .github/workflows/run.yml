@@ -31,6 +31,13 @@ jobs:
           npm install
 
       - name: Run Node
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DB_TASKS: ${{ secrets.NOTION_DB_TASKS }}
+          NOTION_DB_PROJECTS: ${{ secrets.NOTION_DB_PROJECTS }}
+          NOTION_DB_GOALS: ${{ secrets.NOTION_DB_GOALS }}
+          TODOIST_TOKEN: ${{ secrets.TODOIST_TOKEN }}
+          TODOIST_PROJECT_ROOT: ${{ secrets.TODOIST_PROJECT_ROOT }}
         run: |
           cd release/package
           node .
