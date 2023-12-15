@@ -7,6 +7,8 @@ import {
 	UpdateTaskArgs,
 } from '@doist/todoist-api-typescript';
 import fetch from 'node-fetch';
+// eslint-disable-next-line node/no-unpublished-import
+import {IterableElement} from 'type-fest';
 import {v4 as uuidv4} from 'uuid';
 
 const URL = 'https://api.todoist.com/sync/v9/sync';
@@ -25,15 +27,19 @@ export class TodoistSyncApi {
 
 	async loadAll() {
 		const {data} = await this.fetchData();
-		this.loadedData = data;
+		return (this.loadedData = data);
 	}
 
 	async loadDiff(previousSyncToken: string) {
 		const {data, fullSync, syncToken} = await this.fetchData(previousSyncToken);
-		this.loadedDiff = this.mergeTwoSnapshots(this.loadedDiff, data);
-		this.loadedData = this.mergeTwoSnapshots(this.loadedData, this.loadedDiff);
+		this.loadedDiff = this.mergeSnapshots(this.loadedDiff, data);
+		this.loadedData = this.mergeSnapshots(this.loadedData, this.loadedDiff);
 		return fullSync ? undefined : syncToken;
 	}
+
+	getProjects = async () => this.loadedData?.projects ?? [];
+	getSections = async () => this.loadedData?.sections ?? [];
+	getTasks = async () => this.loadedData?.tasks ?? [];
 
 	private async fetchData(sinceToken = '*') {
 		const {projects, sections, items, sync_token, full_sync} =
@@ -50,38 +56,47 @@ export class TodoistSyncApi {
 		return {data, syncToken: `${sync_token}`, fullSync: Boolean(full_sync)};
 	}
 
-	getProjects = () => this.ensureLoaded().then(d => d?.projects ?? []);
-	getSections = () => this.ensureLoaded().then(d => d?.sections ?? []);
-	getTasks = () => this.ensureLoaded().then(d => d?.tasks ?? []);
+	private mergeSnapshots(
+		...snapshots: (Snapshot | undefined)[]
+	): Snapshot | undefined {
+		const maps: Record<
+			keyof Snapshot,
+			Map<string, IterableElement<Snapshot[keyof Snapshot]>>
+		> = {
+			projects: new Map<string, ApiProject>(),
+			sections: new Map<string, ApiSection>(),
+			tasks: new Map<string, ApiTask>(),
+		} as const;
 
-	private mergeTwoSnapshots(
-		old: Snapshot = {tasks: [], projects: [], sections: []},
-		latest: Snapshot
-	): Snapshot {
-		const {tasks} = old;
-		const {tasks: tasks2} = latest ?? {tasks: []};
-		const result = new Map<string, ApiTask>();
-		for (const task of tasks) result.set(task.id, task);
-		for (const task of tasks2) {
-			const existing = result.get(task.id);
-			if (!existing) result.set(task.id, task);
-			else {
-				const existingDate = findMutationDate(existing);
-				const diffDate = findMutationDate(task);
-				if (diffDate > existingDate) result.set(task.id, task);
-			}
+		function merge<T extends ApiTask | ApiProject | ApiSection>(
+			map: Map<string, T>,
+			items: T[]
+		) {
+			items.forEach(item => {
+				const existing = map.get(item.id);
+				if (!existing) map.set(item.id, item);
+				else if (findMutationDate(existing) > findMutationDate(item))
+					map.set(item.id, item);
+			});
 		}
-		return {...old, tasks: [...result.values()]};
-	}
 
-	private async ensureLoaded() {
-		if (!this.loadedData) await this.loadAll();
-		return this.loadedData;
+		for (const snapshot of snapshots) {
+			if (!snapshot) continue;
+			Object.keys(maps)
+				.filter((k): k is keyof typeof maps => true)
+				.forEach(k => merge(maps[k], snapshot[k]));
+		}
+
+		return Object.entries(maps).reduce(
+			(acc, [k, v]) => ({...acc, [k]: [...v.values()]}),
+			{} as Snapshot
+		);
 	}
 
 	getLatestSyncToken() {
 		return this.latestSyncToken;
 	}
+
 	getLatestSnapshot(): Readonly<Snapshot> | undefined {
 		return this.loadedDiff;
 	}
@@ -230,19 +245,31 @@ export class TodoistSyncApi {
 	}
 }
 
-function findMutationDate(task: ApiTask) {
+function findMutationDate(item: ApiTask | ApiProject | ApiSection) {
 	return Math.max(
-		...new Array<ApiTaskEvent>('added', 'updated', 'completed').map(k =>
-			task[`${k}_at`] ? new Date(task[`${k}_at`]).getTime() : 0
-		)
+		...Object.keys(item)
+			.filter((k): k is keyof typeof item => k.endsWith('_at'))
+			.map(k => (item[k] ? new Date(item[k] as string).getTime() : 0))
 	);
 }
 
 export type TemporaryId = string;
 
 export type Snapshot = {
-	projects: {id: string; parent_id: string; name: string}[];
-	sections: {id: string; project_id: string; name: string}[];
+	projects: {
+		id: string;
+		parent_id: string;
+		name: string;
+		updated_at: string;
+		added_at: string;
+	}[];
+	sections: {
+		id: string;
+		project_id: string;
+		name: string;
+		updated_at: string;
+		added_at: string;
+	}[];
 	tasks: {
 		id: string;
 		project_id: string;
@@ -263,7 +290,10 @@ type DueDate = {
 export type ApiTask = Snapshot['tasks'][number];
 export type ApiProject = Snapshot['projects'][number];
 export type ApiSection = Snapshot['sections'][number];
+export type ApiTaskEvent = ApiEvent<ApiTask>;
+export type ApiProjectEvent = ApiEvent<ApiProject>;
+export type ApiSectionEvent = ApiEvent<ApiSection>;
 
-export type ApiTaskEvent = {
-	[K in keyof ApiTask]: K extends `${infer T}_at` ? T : never;
-}[keyof ApiTask];
+type ApiEvent<T extends {}> = {
+	[K in keyof T]: K extends `${infer T}_at` ? T : never;
+}[keyof T];

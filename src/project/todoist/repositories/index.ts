@@ -16,6 +16,7 @@ export class TodoistRepository {
 	}
 
 	async fetchSyncCandidates(lastSync: LastSyncInfo) {
+		await this.api.loadAll();
 		if (lastSync !== 'no-last-sync') await this.api.loadDiff(lastSync.token);
 		const projects = await this.projects.getProjects();
 		const tasks = await this.tasks.getSyncCandidates(projects);
