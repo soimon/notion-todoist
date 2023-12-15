@@ -20,12 +20,15 @@ jobs:
         with:
           node-version: '20'
 
+      - name: List directory contents
+        run: ls -la release
+
       - name: Install dependencies
         run: |
-          cd release/package
+          cd release
           npm install
 
       - name: Run Node
         run: |
-          cd release/package
+          cd release
           node .
