@@ -147,7 +147,7 @@ export class NotionTaskRepository {
 				...(task.isCompleted || state
 					? {
 							[taskSchema.status.id]: {
-								status: {name: state ?? completedTaskState},
+								status: {name: task.isCompleted ? completedTaskState : state},
 							},
 					  }
 					: {}),
