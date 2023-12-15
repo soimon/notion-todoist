@@ -22,10 +22,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd release
+          cd release/package
           npm install
 
       - name: Run Node
         run: |
-          cd release
+          cd release/package
           node .
