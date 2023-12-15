@@ -18,36 +18,41 @@ export class TodoistSyncApi {
 	// Fetching
 	//-----------------------------------------------------------------
 
-	private lastSnapshot: Snapshot | undefined;
+	private loadedData: Snapshot | undefined;
+	loadedDiff: Snapshot | undefined;
 
-	async getSnapshot(): Promise<Snapshot> {
+	async loadAll() {
+		const {data} = await this.fetchData();
+		this.loadedData = data;
+	}
+
+	async loadDiff(previousSyncToken: string) {
+		const {data, fullSync, syncToken} = await this.fetchData(previousSyncToken);
+		this.loadedDiff = data;
+		return fullSync ? undefined : syncToken;
+	}
+
+	private async fetchData(sinceToken = '*') {
 		const {projects, sections, items, sync_token, full_sync} =
 			await this.request({
-				sync_token: '*',
+				sync_token: sinceToken,
 				resource_types: ['projects', 'items', 'sections'],
 			}).then(r => r.json());
-		const snapshot = {
+		const data: Snapshot = {
 			projects: Array.isArray(projects) ? projects : [],
 			sections: Array.isArray(sections) ? sections : [],
 			tasks: Array.isArray(items) ? items : [],
 		};
-		this.lastSnapshot = snapshot;
-		return snapshot;
+		return {data, syncToken: sync_token, fullSync: full_sync};
 	}
 
-	async getProjects() {
-		if (!this.lastSnapshot) await this.getSnapshot();
-		return this.lastSnapshot?.projects ?? [];
-	}
+	getProjects = () => this.ensureLoaded().then(d => d?.projects ?? []);
+	getSections = () => this.ensureLoaded().then(d => d?.sections ?? []);
+	getTasks = () => this.ensureLoaded().then(d => d?.tasks ?? []);
 
-	async getSections() {
-		if (!this.lastSnapshot) await this.getSnapshot();
-		return this.lastSnapshot?.sections ?? [];
-	}
-
-	async getTasks() {
-		if (!this.lastSnapshot) await this.getSnapshot();
-		return this.lastSnapshot?.tasks ?? [];
+	private async ensureLoaded() {
+		if (!this.loadedData) await this.loadAll();
+		return this.loadedData;
 	}
 
 	//-----------------------------------------------------------------
