@@ -42,7 +42,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PAT }}
 
       - name: Write sync file to disk
-        run: echo "${{ steps.retrieve-sync.outputs.content }}" > ./release/package/last-sync-info.json
+        run: printf '%s' "${{  steps.retrieve-sync.outputs.content }}" > ./release/package/last-sync-info.json
 
       - name: Echo the sync file
         run: cat ./release/package/last-sync-info.json
