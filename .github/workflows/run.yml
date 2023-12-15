@@ -29,11 +29,15 @@ jobs:
           cd release/package
           npm install
 
+      - name: Get Date
+        id: get-date
+        run: echo "::set-output name=date::$(date +'%Y%m%d%H%M%S')"
+
       - name: Cache lastSyncInfo
         uses: actions/cache@v2
         with:
           path: ./release/package/last-sync-info.json
-          key: lastSyncInfo
+          key: lastSyncInfo-${{ steps.get-date.outputs.date }}
 
       - name: Run Node
         env:
