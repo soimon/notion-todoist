@@ -30,7 +30,6 @@ export const pickTodoistIfInSnapshotTaskStrategy = (
 		date,
 		deletedInTodoist
 	);
-	console.log(deletedInTodoist);
 
 	// Deduce
 
@@ -83,7 +82,7 @@ const findMutations = (
 			.filter(
 				v =>
 					property.some(p => happenedAfter(p, date)(v)) &&
-					(!exclude || exclude.has(v.id))
+					(!exclude || !exclude.has(v.id))
 			)
 			.map(t => t.id)
 	);
