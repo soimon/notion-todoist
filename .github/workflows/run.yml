@@ -33,13 +33,16 @@ jobs:
         name: Retrieve the sync file
         id: retrieve-sync
         with:
-          gist_id: d1836b5e23ebf7284c34a9cdca49a520
+          gist_id: c31b79e8a37fbf86e4fea699fef6b9c4
           file_name: last-sync-info.json
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
 
       - name: Write sync file to disk
         run: echo "${{ steps.retrieve-sync.outputs.content }}" > ./release/package/last-sync-info.json
+
+      - name: Echo the sync file
+        run: cat ./release/package/last-sync-info.json
 
       - name: Run Node
         env:
@@ -61,7 +64,7 @@ jobs:
       - uses: sergeysova/gist-write-action@v1
         name: Store the sync file
         with:
-          gist_id: d1836b5e23ebf7284c34a9cdca49a520
+          gist_id: c31b79e8a37fbf86e4fea699fef6b9c4
           file_name: last-sync-info.json
           content: '${{ steps.new-file.outputs.LAST_SYNC_INFO }}'
         env:
