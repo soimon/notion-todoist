@@ -16,6 +16,7 @@ import {
 } from '../models';
 import {taskSchema} from './schemas';
 import {NotionProjectRepository} from './projects';
+import {makeIsoScheduledString} from '@framework/utils/time';
 
 // Repository
 
@@ -119,7 +120,12 @@ export class NotionTaskRepository {
 				},
 				[taskSchema.scheduled.id]: {
 					date: task.scheduled
-						? {start: task.scheduled.toISOString().split('T')[0]!}
+						? {
+								start: makeIsoScheduledString(
+									task.scheduled,
+									task.scheduledWithTime
+								),
+						  }
 						: null,
 				},
 			},
@@ -141,7 +147,12 @@ export class NotionTaskRepository {
 				},
 				[taskSchema.scheduled.id]: {
 					date: task.scheduled
-						? {start: task.scheduled.toISOString().split('T')[0]!}
+						? {
+								start: makeIsoScheduledString(
+									task.scheduled,
+									task.scheduledWithTime
+								),
+						  }
 						: null,
 				},
 				...(task.isCompleted || state
@@ -199,6 +210,7 @@ const rowToModel = ({
 	scheduled: p.scheduled?.date?.start
 		? new Date(p.scheduled?.date?.start)
 		: undefined,
+	scheduledWithTime: p.scheduled?.date?.start?.includes('T') ?? false,
 	isCompleted: closedTaskStates.includes(p.status?.status?.name ?? ''),
 	notion: {
 		id,

@@ -18,6 +18,7 @@ export type Task = {
 	isCompleted: boolean;
 	content: string;
 	scheduled?: Date;
+	scheduledWithTime: boolean;
 };
 
 export type TaskProgression =

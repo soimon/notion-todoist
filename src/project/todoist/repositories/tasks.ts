@@ -1,6 +1,7 @@
 import {Task} from '@framework/models';
 import {TemporaryId, TodoistSyncApi} from '@lib/todoist';
 import {TodoistProject, TodoistTask, progressionToLabel} from '../models';
+import {makeIsoScheduledString} from '@framework/utils/time';
 
 // Repository for Todoist tasks.
 
@@ -31,6 +32,7 @@ export class TodoistTaskRepository {
 					content: task.content,
 					isCompleted: task.checked,
 					scheduled: task.due?.date ? new Date(task.due.date) : undefined,
+					scheduledWithTime: task.due?.date?.includes('T') ?? false,
 					progression: findProgression(task.labels),
 					todoist: {
 						description: task.description,
@@ -45,7 +47,7 @@ export class TodoistTaskRepository {
 		const label = progressionToLabel[task.progression];
 		return this.api.addTask({
 			content: task.content,
-			dueDate: makeDueString(task.scheduled),
+			dueDate: makeIsoScheduledString(task.scheduled, task.scheduledWithTime),
 			sectionId: task.goalSyncId,
 			labels: label ? [label] : undefined,
 		});
@@ -57,7 +59,10 @@ export class TodoistTaskRepository {
 
 		this.api.updateTask(id, {
 			content: newState.content,
-			dueDate: makeDueString(newState.scheduled),
+			dueDate: makeIsoScheduledString(
+				newState.scheduled,
+				newState.scheduledWithTime
+			),
 			labels: label ? [label] : undefined,
 		});
 		if (newState.isCompleted) this.api.closeTask(id);
@@ -79,9 +84,3 @@ const findProgression = (labels: string[]) =>
 const labelToProgression = Object.fromEntries(
 	Object.entries(progressionToLabel).map(([k, v]) => [v, k])
 ) as Record<string, Task['progression']>;
-
-// Make a string like "2021-01-01" from a Date object.
-
-const makeDueString = (date: Date | undefined) =>
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	date?.toISOString().split('T')[0] as any;
