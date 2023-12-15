@@ -44,19 +44,21 @@ export class RepositorySyncer implements Syncer {
 		> = {};
 		const goalIdMapping: Record<NotionGoal['notion']['id'], TemporaryId> = {};
 
-		// Projects
+		// Tasks
 
-		for (const project of projects.add) {
-			const tempId = p.addProject(project);
-			idMapping[tempId] = project;
-			for (const goal of project.goals) {
-				const tempGoalId = p.addGoal(goal, tempId);
-				goalIdMapping[goal.notion.id] = tempGoalId;
-				idMapping[tempGoalId] = goal;
-			}
+		for (const task of remapGoals(tasks.add)) idMapping[t.add(task)] = task;
+		for (const task of remapGoals(tasks.update)) t.update(task);
+		for (const task of tasks.remove) t.remove(task);
+
+		function remapGoals(tasks: NotionTask[]) {
+			return tasks.map(t => ({
+				...t,
+				goalSyncId: goalIdMapping[t.notion.goalId] ?? t.goalSyncId,
+			}));
 		}
 
-		for (const project of projects.remove) p.removeProject(project);
+		// Projects
+
 		for (const project of projects.update) {
 			if (!project.goals.onlySyncGoals) p.updateProject(project);
 
@@ -71,18 +73,17 @@ export class RepositorySyncer implements Syncer {
 			for (const goal of project.goals.update) p.updateGoal(goal);
 		}
 
-		// Tasks
-
-		for (const task of remapGoals(tasks.add)) idMapping[t.add(task)] = task;
-		for (const task of remapGoals(tasks.update)) t.update(task);
-		for (const task of tasks.remove) t.remove(task);
-
-		function remapGoals(tasks: NotionTask[]) {
-			return tasks.map(t => ({
-				...t,
-				goalSyncId: goalIdMapping[t.notion.goalId] ?? t.goalSyncId,
-			}));
+		for (const project of projects.add) {
+			const tempId = p.addProject(project);
+			idMapping[tempId] = project;
+			for (const goal of project.goals) {
+				const tempGoalId = p.addGoal(goal, tempId);
+				goalIdMapping[goal.notion.id] = tempGoalId;
+				idMapping[tempGoalId] = goal;
+			}
 		}
+
+		for (const project of projects.remove) p.removeProject(project);
 
 		// Linking
 

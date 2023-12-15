@@ -18,11 +18,13 @@ import {log} from './framework/utils/dev';
 import {RepositorySyncer} from './project/syncers/repository';
 import {LastSyncInfoStore} from '@framework/sync';
 import {ConfigFileLastSyncInfoStore} from '@project/persistence/configfile';
+import {pickTodoistIfInSnapshotTaskStrategy} from '@project/strategies/pick-todoist-if-in-snapshot';
 dotenv.config();
 console.clear();
 
 const SYNC_PROJECTS = true;
 const SYNC_TASKS = true;
+const SYNC_FORCE_FULL = false;
 
 async function main() {
 	// Sync info
@@ -30,7 +32,7 @@ async function main() {
 	const lastSyncInfoStore: LastSyncInfoStore = new ConfigFileLastSyncInfoStore(
 		'./cache/last-sync-info.json'
 	);
-	const lastSyncInfo = await lastSyncInfoStore.getLastSyncInfo();
+	const lastSyncInfo = await lastSyncInfoStore.getLastSyncInfo(SYNC_FORCE_FULL);
 	if (typeof lastSyncInfo !== 'string')
 		console.log(`Last sync: ${lastSyncInfo.date}`);
 	else console.log(`Performing full sync`);
@@ -51,16 +53,25 @@ async function main() {
 		notion.fetchSyncCandidates(lastSyncInfo),
 		todoist.fetchSyncCandidates(lastSyncInfo),
 	]);
+
+	const lastTodoistSnapshot = todoist.getLatestSnapshot();
 	console.timeEnd('Elapsed');
 
 	// Determine stategies
 
-	const projectStrategy = !SYNC_PROJECTS
-		? doNothingProjectStrategy(notionProjects, todoistProjects)
-		: followNotionProjectStrategy(notionProjects, todoistProjects);
-	const taskStrategy = !SYNC_TASKS
-		? doNothingTaskStrategy(notionTasks, todoistTasks)
-		: followNotionTaskStrategy(notionTasks, todoistTasks);
+	const projectStrategy = SYNC_PROJECTS
+		? followNotionProjectStrategy(notionProjects, todoistProjects)
+		: doNothingProjectStrategy(notionProjects, todoistProjects);
+	const taskStrategy = SYNC_TASKS
+		? lastSyncInfo === 'no-last-sync' || !lastTodoistSnapshot
+			? followNotionTaskStrategy(notionTasks, todoistTasks)
+			: pickTodoistIfInSnapshotTaskStrategy(
+					notionTasks,
+					todoistTasks,
+					lastSyncInfo,
+					lastTodoistSnapshot
+			  )
+		: doNothingTaskStrategy(notionTasks, todoistTasks);
 
 	// Sync projects
 

@@ -6,6 +6,6 @@ export type LastSyncInfo =
 	| 'no-last-sync';
 
 export type LastSyncInfoStore = {
-	getLastSyncInfo(): Promise<LastSyncInfo>;
+	getLastSyncInfo(forceFull: boolean): Promise<LastSyncInfo>;
 	setLastSyncInfo(token: string): Promise<void>;
 };

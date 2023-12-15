@@ -13,14 +13,15 @@ const TASK_PREFIX = `${TAB_PREFIX}\u2192 ✅ `;
 export class SyncLogger implements Syncer {
 	constructor(private syncer: Syncer) {}
 
-	async sync(strategy: SyncStrategy) {
-		console.log('\nPerforming the following strategy:\n');
+	async sync(strategy: SyncStrategy, logOnly = false) {
+		console.log('');
 		this.log(strategy);
-		console.time('Elapsed');
-		const output = await this.syncer.sync(strategy);
+		if (!logOnly) {
+			console.time('Elapsed');
+			await this.syncer.sync(strategy);
+		}
 		console.log('\nDone!');
-		console.timeEnd('Elapsed');
-		return output;
+		if (!logOnly) console.timeEnd('Elapsed');
 	}
 
 	private log(strategy: SyncStrategy) {

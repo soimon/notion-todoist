@@ -33,8 +33,6 @@ export class TodoistTaskRepository {
 					scheduled: task.due?.date ? new Date(task.due.date) : undefined,
 					todoist: {
 						description: task.description,
-						projectId: task.project_id,
-						sectionId: task.section_id,
 					},
 				})
 			);

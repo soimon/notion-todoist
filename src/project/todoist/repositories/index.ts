@@ -16,11 +16,7 @@ export class TodoistRepository {
 	}
 
 	async fetchSyncCandidates(lastSync: LastSyncInfo) {
-		if (lastSync !== 'no-last-sync') {
-			await this.api.loadDiff(lastSync.token);
-			console.log(this.api.loadedDiff);
-		}
-
+		if (lastSync !== 'no-last-sync') await this.api.loadDiff(lastSync.token);
 		const projects = await this.projects.getProjects();
 		const tasks = await this.tasks.getSyncCandidates(projects);
 		return {projects, tasks};
@@ -31,6 +27,10 @@ export class TodoistRepository {
 		if (!lastSyncToken) return undefined;
 		// Get a new sync token, otherwise the changes made in this sync operation show up in the diff the next time it is scheduled.
 		return await this.api.loadDiff(lastSyncToken);
+	}
+
+	getLatestSnapshot() {
+		return this.api.getLatestSnapshot();
 	}
 
 	async commit() {

@@ -4,7 +4,8 @@ import {readFile, writeFile} from 'fs/promises';
 export class ConfigFileLastSyncInfoStore implements LastSyncInfoStore {
 	constructor(private configFilePath: string) {}
 
-	async getLastSyncInfo(): Promise<LastSyncInfo> {
+	async getLastSyncInfo(forceFull: boolean): Promise<LastSyncInfo> {
+		if (forceFull) return 'no-last-sync';
 		try {
 			const configFileContent = await readFile(this.configFilePath, 'utf-8');
 			const config = JSON.parse(configFileContent);
