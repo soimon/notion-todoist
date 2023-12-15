@@ -8,5 +8,7 @@ declare namespace NodeJS {
 
 		TODOIST_TOKEN: string;
 		TODOIST_PROJECT_ROOT: string;
+
+		DEV: string | undefined;
 	}
 }

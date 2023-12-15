@@ -1,6 +1,7 @@
 import {readFile, writeFile} from 'fs/promises';
 
 export async function cacheResult<T>(name: string, fetcher: () => Promise<T>) {
+	if (!process.env.DEV) return fetcher();
 	const file = `cache/${name}.json`;
 	const data = await readFile(file, 'utf-8')
 		.then(v => JSON.parse(v))
@@ -16,6 +17,7 @@ export async function logResult<T>(name: string, fetcher: () => Promise<T>) {
 }
 
 export async function log(name: string, data: unknown) {
+	if (!process.env.DEV) return;
 	const file = `cache/${name}.json`;
 	await writeFile(file, JSON.stringify(data));
 }
