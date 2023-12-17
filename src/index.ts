@@ -24,8 +24,8 @@ dotenv.config();
 console.clear();
 
 const SYNC_PROJECTS = false;
-const SYNC_TASKS = false;
-const SYNC_FORCE_FULL = false;
+const SYNC_TASKS = true;
+const SYNC_FORCE_FULL = true;
 
 async function main() {
 	// Sync info
