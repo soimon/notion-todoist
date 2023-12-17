@@ -29,6 +29,8 @@
 	"dependencies": {
 		"@doist/todoist-api-typescript": "^3.0.1",
 		"@notionhq/client": "^2.2.14",
+		"@vighnesh153/github-gist": "^0.4.4",
+		"axios": "^1.6.2",
 		"dotenv": "^16.3.1",
 		"module-alias": "^2.2.3",
 		"node-fetch": "^2.7.0",

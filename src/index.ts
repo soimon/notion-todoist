@@ -1,7 +1,9 @@
 require('module-alias/register');
+import {LastSyncInfoStore} from '@framework/sync';
 import {TodoistSyncApi} from '@lib/todoist';
 import {Client} from '@notionhq/client';
 import {NotionRepository} from '@project/notion/repositories';
+import {GistLastSyncInfoStore} from '@project/persistence/gist';
 import {
 	doNothingProjectStrategy,
 	doNothingTaskStrategy,
@@ -10,28 +12,31 @@ import {
 	followNotionProjectStrategy,
 	followNotionTaskStrategy,
 } from '@project/strategies/follow-notion';
+import {pickTodoistIfInSnapshotTaskStrategy} from '@project/strategies/pick-todoist-if-in-snapshot';
 import {SyncLogger} from '@project/syncers/logger';
 import {TodoistRepository} from '@project/todoist/repositories';
 import {SyncStrategy} from '@project/types';
 import dotenv from 'dotenv';
 import {log} from './framework/utils/dev';
 import {RepositorySyncer} from './project/syncers/repository';
-import {LastSyncInfoStore} from '@framework/sync';
 import {ConfigFileLastSyncInfoStore} from '@project/persistence/configfile';
-import {pickTodoistIfInSnapshotTaskStrategy} from '@project/strategies/pick-todoist-if-in-snapshot';
 dotenv.config();
 console.clear();
 
-const SYNC_PROJECTS = true;
-const SYNC_TASKS = true;
+const SYNC_PROJECTS = false;
+const SYNC_TASKS = false;
 const SYNC_FORCE_FULL = false;
 
 async function main() {
 	// Sync info
 
-	const lastSyncInfoStore: LastSyncInfoStore = new ConfigFileLastSyncInfoStore(
-		'./last-sync-info.json'
-	);
+	const lastSyncInfoStore: LastSyncInfoStore = process.env.GIST_PAT
+		? new GistLastSyncInfoStore(
+				'5cb9abe9d92507f9687bd7ec2c7ce239',
+				'last-sync-info.json',
+				process.env.GIST_PAT
+		  )
+		: new ConfigFileLastSyncInfoStore('./last-sync-info.json');
 	const lastSyncInfo = await lastSyncInfoStore.getLastSyncInfo(SYNC_FORCE_FULL);
 
 	if (typeof lastSyncInfo !== 'string')

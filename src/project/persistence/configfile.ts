@@ -5,6 +5,7 @@ export class ConfigFileLastSyncInfoStore implements LastSyncInfoStore {
 	constructor(private configFilePath: string) {}
 
 	async getLastSyncInfo(forceFull: boolean): Promise<LastSyncInfo> {
+		console.log('Getting last sync info from a local config file');
 		if (forceFull) return 'no-last-sync';
 		try {
 			const configFileContent = await readFile(this.configFilePath, 'utf-8');

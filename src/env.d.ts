@@ -11,5 +11,7 @@ declare namespace NodeJS {
 
 		DEV: string | undefined;
 		IS_GITHUB_ACTION: string | undefined;
+
+		GIST_PAT: string | undefined;
 	}
 }

@@ -32,21 +32,6 @@ jobs:
           cd release/package
           npm install
 
-      - uses: sergeysova/gist-read-action@v1
-        name: Retrieve the sync file
-        id: retrieve-sync
-        with:
-          gist_id: 5cb9abe9d92507f9687bd7ec2c7ce239
-          file_name: last-sync-info.json
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
-
-      - name: Write sync file to disk
-        run: printf '%s' '${{  steps.retrieve-sync.outputs.content }}' > ./release/package/last-sync-info.json
-
-      - name: Echo the sync file
-        run: cat ./release/package/last-sync-info.json
-
       - name: Run Node
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
@@ -55,20 +40,8 @@ jobs:
           NOTION_DB_GOALS: ${{ secrets.NOTION_DB_GOALS }}
           TODOIST_TOKEN: ${{ secrets.TODOIST_TOKEN }}
           TODOIST_PROJECT_ROOT: ${{ secrets.TODOIST_PROJECT_ROOT }}
+          GIST_PAT: ${{ secrets.PAT }}
           IS_GITHUB_ACTION: true
         run: |
           cd release/package
           node .
-
-      - name: Read contents of the new sync file
-        id: new-file
-        run: echo "::set-output name=LAST_SYNC_INFO::$(cat ./release/package/last-sync-info.json)"
-
-      - uses: sergeysova/gist-write-action@v1
-        name: Store the sync file
-        with:
-          gist_id: 5cb9abe9d92507f9687bd7ec2c7ce239
-          file_name: last-sync-info.json
-          content: '${{ steps.new-file.outputs.LAST_SYNC_INFO }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
