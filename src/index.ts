@@ -12,7 +12,10 @@ import {
 	followNotionProjectStrategy,
 	followNotionTaskStrategy,
 } from '@project/strategies/follow-notion';
-import {pickTodoistIfInSnapshotTaskStrategy} from '@project/strategies/pick-todoist-if-in-snapshot';
+import {
+	pickTodoistIfInSnapshotProjectStrategy,
+	pickTodoistIfInSnapshotTaskStrategy,
+} from '@project/strategies/pick-todoist-if-in-snapshot';
 import {SyncLogger} from '@project/syncers/logger';
 import {TodoistRepository} from '@project/todoist/repositories';
 import {SyncStrategy} from '@project/types';
@@ -23,9 +26,9 @@ import {ConfigFileLastSyncInfoStore} from '@project/persistence/configfile';
 dotenv.config();
 console.clear();
 
-const SYNC_PROJECTS = false;
+const SYNC_PROJECTS = true;
 const SYNC_TASKS = true;
-const SYNC_FORCE_FULL = true;
+const SYNC_FORCE_FULL = false;
 
 async function main() {
 	// Sync info
@@ -66,8 +69,16 @@ async function main() {
 	// Determine stategies
 
 	const projectStrategy = SYNC_PROJECTS
-		? followNotionProjectStrategy(notionProjects, todoistProjects)
+		? lastSyncInfo === 'no-last-sync' || !lastTodoistSnapshot
+			? followNotionProjectStrategy(notionProjects, todoistProjects)
+			: pickTodoistIfInSnapshotProjectStrategy(
+					notionProjects,
+					todoistProjects,
+					lastSyncInfo,
+					lastTodoistSnapshot
+			  )
 		: doNothingProjectStrategy(notionProjects, todoistProjects);
+
 	const taskStrategy = SYNC_TASKS
 		? lastSyncInfo === 'no-last-sync' || !lastTodoistSnapshot
 			? followNotionTaskStrategy(notionTasks, todoistTasks)

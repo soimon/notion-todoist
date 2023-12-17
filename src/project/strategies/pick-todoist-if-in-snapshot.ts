@@ -1,10 +1,95 @@
 import {LastSyncInfo} from '@framework/sync';
 import {log} from '@framework/utils/dev';
-import {ApiTask, ApiTaskEvent, Snapshot} from '@lib/todoist';
-import {NotionTask} from '@project/notion/models';
-import {TodoistTask} from '@project/todoist/models';
-import {TaskSyncStrategizer} from '@project/types';
-import {diffTasks, isNotion, isTodoist} from './utils';
+import {
+	ApiEvent,
+	ApiProject,
+	ApiSection,
+	ApiTask,
+	Snapshot,
+} from '@lib/todoist';
+import {NotionGoal, NotionProject, NotionTask} from '@project/notion/models';
+import {
+	TodoistGoal,
+	TodoistProject,
+	TodoistTask,
+} from '@project/todoist/models';
+import {
+	GoalSyncStrategizer,
+	ProjectSyncStrategizer,
+	TaskSyncStrategizer,
+} from '@project/types';
+import {
+	applyGoalStrategyAndFilter,
+	diffProjects,
+	diffTasks,
+	isNotion,
+	isTodoist,
+} from './utils';
+
+export const pickTodoistIfInSnapshotProjectStrategy = (
+	notion: NotionProject[],
+	todoist: TodoistProject[],
+	{date}: Exclude<LastSyncInfo, 'no-last-sync'>,
+	{sections}: Snapshot
+): ReturnType<ProjectSyncStrategizer> => {
+	const diff = diffProjects(notion, todoist);
+	log('snapshot-sections', sections);
+
+	const goalsDeletedInTodoist = new Set(
+		sections.filter(t => t.is_deleted).map(t => t.id)
+	);
+	const goalsAddedInTodoist = findMutations(
+		sections,
+		['added'],
+		date,
+		goalsDeletedInTodoist
+	);
+
+	const projectsWithAddedSections = diff.pairs.filter(p =>
+		p.goals.loners.some(g => goalsAddedInTodoist.has(g.syncId))
+	);
+
+	return {
+		notion: {
+			add: [],
+			remove: [],
+			update: projectsWithAddedSections.map(p => ({
+				...p.notion,
+				goals: {
+					remove: [],
+					update: [],
+					add: p.goals.loners
+						.filter(isTodoist<TodoistGoal>)
+						.filter(g => goalsAddedInTodoist.has(g.syncId)),
+					onlySyncGoals: true,
+				},
+			})),
+		},
+		todoist: {
+			add: diff.loners.filter(isNotion<NotionProject>),
+			remove: diff.loners.filter(isTodoist<TodoistProject>),
+			update: applyGoalStrategyAndFilter(
+				diff.pairs,
+				pickTodoistIfInSnapshotGoalStrategy(goalsAddedInTodoist)
+			).map(({notion, goals}) => ({
+				...notion,
+				goals,
+			})),
+		},
+	};
+};
+
+const pickTodoistIfInSnapshotGoalStrategy =
+	(addedInTodoist: Set<string>): GoalSyncStrategizer<NotionGoal> =>
+	({loners, pairs}) => {
+		return {
+			add: loners.filter(isNotion<NotionGoal>),
+			remove: loners
+				.filter(isTodoist<TodoistGoal>)
+				.filter(v => !addedInTodoist.has(v.syncId)),
+			update: pairs.filter(p => p.differences.length).map(p => p.notion),
+		};
+	};
 
 export const pickTodoistIfInSnapshotTaskStrategy = (
 	notion: NotionTask[],
@@ -71,24 +156,29 @@ export const pickTodoistIfInSnapshotTaskStrategy = (
 	};
 };
 
-const findMutations = (
-	tasks: ApiTask[],
-	property: ApiTaskEvent[],
+const findMutations = <T extends ApiTask | ApiSection | ApiProject>(
+	items: T[],
+	property: ApiEvent<T>[],
 	date: Date,
 	exclude?: Set<string>
 ) =>
 	new Set(
-		tasks
+		items
 			.filter(
 				v =>
-					property.some(p => happenedAfter(p, date)(v)) &&
+					property.some(p => happenedAfter<T>(p, date)(v)) &&
 					(!exclude || !exclude.has(v.id))
 			)
-			.map(t => t.id)
+			.map(i => i.id)
 	);
 
 const happenedAfter =
-	(property: ApiTaskEvent, referenceDate: Date) => (task: ApiTask) =>
-		task[`${property}_at`]
-			? new Date(task[`${property}_at`]) > referenceDate
+	<T extends ApiTask | ApiSection | ApiProject>(
+		property: ApiEvent<T>,
+		referenceDate: Date
+	) =>
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	(item: Record<string, any>) =>
+		item[`${property}_at`]
+			? new Date(item[`${property}_at`]) > referenceDate
 			: false;

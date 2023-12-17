@@ -9,6 +9,7 @@ import {
 } from '../models';
 import {goalSchema, projectSchema} from './schemas';
 import {QueryFilters, queryDatabase} from '@lib/notion';
+import {Goal} from '@framework/models';
 
 export class NotionProjectRepository {
 	constructor(
@@ -98,6 +99,36 @@ export class NotionProjectRepository {
 	}
 
 	// Altering
+
+	async addGoal(goal: Goal, projectSyncId: string) {
+		return this.api.pages.create({
+			parent: {
+				database_id: this.goalDatabaseId,
+			},
+			properties: {
+				[goalSchema.name.id]: {
+					title: [
+						{
+							type: 'text',
+							text: {
+								content: goal.name,
+							},
+						},
+					],
+				},
+				[goalSchema.project.id]: {
+					relation: [
+						{
+							id: this.requireIdFromSyncId(projectSyncId),
+						},
+					],
+				},
+				[goalSchema.synccId.id]: {
+					rich_text: [{type: 'text', text: {content: goal.syncId}}],
+				},
+			},
+		});
+	}
 
 	async linkProject(project: NotionProject, syncId: string) {
 		return this.api.pages.update({

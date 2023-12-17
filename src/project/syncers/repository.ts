@@ -28,6 +28,12 @@ export class RepositorySyncer implements Syncer {
 		projects: ProjectSyncStrategy['notion'],
 		tasks: TaskSyncStrategy['notion']
 	) {
+		// Projects
+
+		for (const project of projects.update)
+			for (const goal of project.goals.add)
+				await this.notion.projects.addGoal(goal, project.syncId);
+
 		// Tasks
 
 		for (const task of tasks.add) await this.notion.tasks.add(task);

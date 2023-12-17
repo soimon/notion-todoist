@@ -268,8 +268,8 @@ export type Snapshot = {
 		id: string;
 		project_id: string;
 		name: string;
-		updated_at: string;
 		added_at: string;
+		is_deleted: boolean;
 	}[];
 	tasks: {
 		id: string;
@@ -292,10 +292,7 @@ type DueDate = {
 export type ApiTask = Snapshot['tasks'][number];
 export type ApiProject = Snapshot['projects'][number];
 export type ApiSection = Snapshot['sections'][number];
-export type ApiTaskEvent = ApiEvent<ApiTask>;
-export type ApiProjectEvent = ApiEvent<ApiProject>;
-export type ApiSectionEvent = ApiEvent<ApiSection>;
 
-type ApiEvent<T extends {}> = {
+export type ApiEvent<T extends {}> = {
 	[K in keyof T]: K extends `${infer T}_at` ? T : never;
 }[keyof T];
