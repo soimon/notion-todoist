@@ -109,6 +109,12 @@ export const pickTodoistIfInSnapshotTaskStrategy = (
 		date,
 		deletedInTodoist
 	);
+	const completedInTodoist = findMutations(
+		tasks,
+		['completed'],
+		date,
+		deletedInTodoist
+	);
 	const addedInTodoist = findMutations(
 		tasks,
 		['added'],
@@ -129,9 +135,14 @@ export const pickTodoistIfInSnapshotTaskStrategy = (
 		.filter(v => updatedInTodoist.has(v.todoist.syncId))
 		.map(p => p.todoist);
 
-	const onlyFoundInNotionAndNotDeletedInTodoist = loners
+	const onlyFoundInNotionAndNotDeletedOrCompletedInTodoist = loners
 		.filter(isNotion<NotionTask>)
-		.filter(v => !deletedInTodoist.has(v.syncId));
+		.filter(
+			v =>
+				!v.isCompleted &&
+				!deletedInTodoist.has(v.syncId) &&
+				!completedInTodoist.has(v.syncId)
+		);
 	const onlyFoundInTodoistAndNotAddedInTodoist = loners
 		.filter(isTodoist<TodoistTask>)
 		.filter(v => !addedInTodoist.has(v.syncId));
@@ -149,7 +160,7 @@ export const pickTodoistIfInSnapshotTaskStrategy = (
 			update: differentAndUpdatedInTodoist,
 		},
 		todoist: {
-			add: onlyFoundInNotionAndNotDeletedInTodoist,
+			add: onlyFoundInNotionAndNotDeletedOrCompletedInTodoist,
 			remove: onlyFoundInTodoistAndNotAddedInTodoist,
 			update: differentAndNotUpdatedInTodoist,
 		},
