@@ -12,6 +12,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: neverendingqs/gh-action-tag-on-npm-version@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT_PUSH }}
+      - shell: bash
+        run: |
+          #!/bin/bash
+          set -eux
+
+          TAG="v$(cat package.json | jq -r '.version')"
+
+          # In case only a shallow clone was done
+          git fetch --tags
+
+          if ! git tag | grep "${TAG}"; then
+            git config --global user.name 'github-actions[bot]'
+            git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git tag -a ${TAG} -m ${TAG}
+            git push https://${{ secrets.PAT_PUSH }}@github.com/${{ github.repository }} --tags
+          else
+            echo "'${TAG}' already exists. No action taken."
+          fi
