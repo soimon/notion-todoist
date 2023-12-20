@@ -2,7 +2,7 @@ name: Assign a tag when a commit changes the package.json version
 on:
   push:
     branches:
-      - master
+      - main
     paths:
       - package.json
 jobs:
