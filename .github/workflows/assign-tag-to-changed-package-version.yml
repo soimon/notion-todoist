@@ -13,3 +13,5 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: neverendingqs/gh-action-tag-on-npm-version@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_PUSH }}
