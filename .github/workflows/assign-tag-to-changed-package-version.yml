@@ -12,6 +12,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.PAT_PUSH }}
       - shell: bash
         run: |
           #!/bin/bash
@@ -26,7 +28,7 @@ jobs:
             git config --global user.name 'github-actions[bot]'
             git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
             git tag -a ${TAG} -m ${TAG}
-            git push https://${{ secrets.PAT_PUSH }}@github.com/${{ github.repository }} --tags
+            git push --tags
           else
             echo "'${TAG}' already exists. No action taken."
           fi
