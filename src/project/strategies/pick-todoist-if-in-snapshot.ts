@@ -25,6 +25,7 @@ import {
 	isNotion,
 	isTodoist,
 } from './utils';
+import {Task} from '@framework/models';
 
 export const pickTodoistIfInSnapshotProjectStrategy = (
 	notion: NotionProject[],
@@ -122,11 +123,16 @@ export const pickTodoistIfInSnapshotTaskStrategy = (
 		deletedInTodoist
 	);
 
+	// Selectors
+
+	const isAddedOrModifiedInTodoist = (v: Task) =>
+		updatedInTodoist.has(v.syncId) || addedInTodoist.has(v.syncId);
+
 	// Deduce
 
-	const onlyFoundInTodoistAndAddedThere = loners
+	const onlyFoundInTodoistAndAddedOrModifiedThere = loners
 		.filter(isTodoist<TodoistTask>)
-		.filter(v => addedInTodoist.has(v.syncId));
+		.filter(isAddedOrModifiedInTodoist);
 	const onlyFoundInNotionButDeletedInTodoist = loners
 		.filter(isNotion<NotionTask>)
 		.filter(v => deletedInTodoist.has(v.syncId));
@@ -143,9 +149,9 @@ export const pickTodoistIfInSnapshotTaskStrategy = (
 				!deletedInTodoist.has(v.syncId) &&
 				!completedInTodoist.has(v.syncId)
 		);
-	const onlyFoundInTodoistAndNotAddedInTodoist = loners
+	const onlyFoundInTodoistAndNotAddedOrModifiedInTodoist = loners
 		.filter(isTodoist<TodoistTask>)
-		.filter(v => !addedInTodoist.has(v.syncId));
+		.filter(v => !isAddedOrModifiedInTodoist(v));
 	const differentAndNotUpdatedInTodoist = pairs
 		.filter(p => p.differences.length)
 		.filter(v => !updatedInTodoist.has(v.notion.syncId))
@@ -155,13 +161,13 @@ export const pickTodoistIfInSnapshotTaskStrategy = (
 
 	return {
 		notion: {
-			add: onlyFoundInTodoistAndAddedThere,
+			add: onlyFoundInTodoistAndAddedOrModifiedThere,
 			remove: onlyFoundInNotionButDeletedInTodoist,
 			update: differentAndUpdatedInTodoist,
 		},
 		todoist: {
 			add: onlyFoundInNotionAndNotDeletedOrCompletedInTodoist,
-			remove: onlyFoundInTodoistAndNotAddedInTodoist,
+			remove: onlyFoundInTodoistAndNotAddedOrModifiedInTodoist,
 			update: differentAndNotUpdatedInTodoist,
 		},
 	};
