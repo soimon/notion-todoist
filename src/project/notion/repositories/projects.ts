@@ -27,14 +27,13 @@ export class NotionProjectRepository {
 		const projects = (await this.fetchProjects())
 			.map(({id, properties}): NotionProject => {
 				const _goals = goals[id]?.sort(sortByBlocked) ?? [];
+				const isBlocked = _goals.every(g => g.blockedState !== 'free');
+				const isPaused = !!properties.blocked?.select?.name;
 				this.storeIdMappings(_goals);
 				return {
 					syncId: properties.syncId?.rich_text[0]?.plain_text ?? '',
 					name: properties.name?.title[0]?.plain_text ?? '',
-					isBlocked: _goals.every(g => g.isBlocked) ?? false,
-					isPaused:
-						!!properties.blocked?.select?.name ||
-						(_goals.every(g => g.isPaused) ?? false),
+					blockedState: isBlocked ? 'blocked' : isPaused ? 'paused' : 'free',
 					goals: _goals,
 					notion: {
 						id,
@@ -58,8 +57,7 @@ export class NotionProjectRepository {
 			return {
 				syncId,
 				name,
-				isPaused,
-				isBlocked,
+				blockedState: isBlocked ? 'blocked' : isPaused ? 'paused' : 'free',
 				notion: {
 					id,
 					projectId,
@@ -191,6 +189,7 @@ const projectIsActionableFilter: QueryFilters = {
 // Sorters
 
 const sortByBlocked = (
-	a: Pick<NotionProject, 'isBlocked'>,
-	b: Pick<NotionProject, 'isBlocked'>
-): number => (a.isBlocked ? 1 : 0) - (b.isBlocked ? 1 : 0);
+	a: Pick<NotionProject, 'blockedState'>,
+	b: Pick<NotionProject, 'blockedState'>
+): number =>
+	(a.blockedState !== 'free' ? 1 : 0) - (b.blockedState !== 'free' ? 1 : 0);

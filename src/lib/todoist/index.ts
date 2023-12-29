@@ -263,6 +263,7 @@ export type Snapshot = {
 		name: string;
 		updated_at: string;
 		added_at: string;
+		order: number;
 	}[];
 	sections: {
 		id: string;
@@ -270,6 +271,7 @@ export type Snapshot = {
 		name: string;
 		added_at: string;
 		is_deleted: boolean;
+		order: number;
 	}[];
 	tasks: {
 		id: string;

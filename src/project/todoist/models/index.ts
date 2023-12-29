@@ -8,12 +8,15 @@ export type TodoistTask = Task & {
 
 export type TodoistProject = Project & {
 	goals: TodoistGoal[];
-	todoist: {};
+	todoist: {
+		order: number;
+	};
 };
 
 export type TodoistGoal = Goal & {
 	todoist: {
 		projectId: string;
+		order: number;
 	};
 };
 
