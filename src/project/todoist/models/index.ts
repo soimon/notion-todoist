@@ -6,7 +6,7 @@ export type TodoistTask = Task & {
 	};
 };
 
-export type TodoistProject = Project & {
+export type TodoistProject = Omit<Project, 'goals'> & {
 	goals: TodoistGoal[];
 	todoist: {
 		order: number;

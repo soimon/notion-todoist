@@ -22,12 +22,12 @@ export class TodoistProjectRepository {
 			groupBy(g, ({todoist}) => todoist.projectId)
 		);
 		return projects.map(
-			({name, id, order}): TodoistProject => ({
+			({name, id, child_order}): TodoistProject => ({
 				syncId: id,
 				...extractNameAndBlocked(name),
 				goals: goals[id] ?? [],
 				todoist: {
-					order,
+					order: child_order,
 				},
 			})
 		);
@@ -36,12 +36,12 @@ export class TodoistProjectRepository {
 	private async getGoals(): Promise<TodoistGoal[]> {
 		const sections = await this.api.getSections();
 		return sections.map(
-			({id, project_id, name, order}): TodoistGoal => ({
+			({id, project_id, name, section_order}): TodoistGoal => ({
 				syncId: id,
 				...extractNameAndBlocked(name),
 				todoist: {
 					projectId: project_id,
-					order,
+					order: section_order,
 				},
 			})
 		);
@@ -77,6 +77,10 @@ export class TodoistProjectRepository {
 		});
 	}
 
+	reorderProjects(order: Pick<Project, 'syncId'>[]) {
+		this.api.reorderProjects(order.map(({syncId}) => syncId));
+	}
+
 	addGoal(
 		goal: Pick<Goal, 'name' | 'blockedState'>,
 		projectId: string
@@ -97,6 +101,10 @@ export class TodoistProjectRepository {
 		});
 		// TODO: Implement moving
 		// this.syncApi.moveSection(goal.syncId, )
+	}
+
+	reorderGoals(order: Pick<Goal, 'syncId'>[]) {
+		this.api.reorderSections(order.map(({syncId}) => syncId));
 	}
 }
 

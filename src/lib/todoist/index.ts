@@ -125,6 +125,12 @@ export class TodoistSyncApi {
 		this.addCommand('project_delete', {id});
 	}
 
+	reorderProjects(ids: string[]): void {
+		this.addCommand('project_reorder', {
+			projects: ids.map((id, child_order) => ({id, child_order})),
+		});
+	}
+
 	addSection(section: AddSectionArgs): TemporaryId {
 		return this.addCommand('section_add', {
 			name: section.name,
@@ -136,6 +142,15 @@ export class TodoistSyncApi {
 		this.addCommand('section_update', {
 			id,
 			name: section.name,
+		});
+	}
+
+	reorderSections(ids: string[]): void {
+		this.addCommand('section_reorder', {
+			sections: ids.map((id, section_order) => ({
+				id,
+				section_order: section_order + 1,
+			})),
 		});
 	}
 
@@ -263,7 +278,7 @@ export type Snapshot = {
 		name: string;
 		updated_at: string;
 		added_at: string;
-		order: number;
+		child_order: number;
 	}[];
 	sections: {
 		id: string;
@@ -271,7 +286,7 @@ export type Snapshot = {
 		name: string;
 		added_at: string;
 		is_deleted: boolean;
-		order: number;
+		section_order: number;
 	}[];
 	tasks: {
 		id: string;

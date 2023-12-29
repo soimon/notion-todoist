@@ -5,9 +5,9 @@ import {
 	TaskSyncStrategy,
 } from '@project/types';
 
-const TAB_PREFIX = '   ';
-const PROJECT_PREFIX = `${TAB_PREFIX}\u2192 📦 `;
-const GOAL_PREFIX = `${TAB_PREFIX}\u2192 🎯 `;
+export const TAB_PREFIX = '   ';
+export const PROJECT_PREFIX = `${TAB_PREFIX}\u2192 📦 `;
+export const GOAL_PREFIX = `${TAB_PREFIX}\u2192 🎯 `;
 const TASK_PREFIX = `${TAB_PREFIX}\u2192 ✅ `;
 
 export class SyncLogger implements Syncer {

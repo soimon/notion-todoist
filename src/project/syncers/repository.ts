@@ -1,6 +1,7 @@
 import {TemporaryId} from '@lib/todoist';
 import {NotionGoal, NotionProject, NotionTask} from '@project/notion/models';
 import {NotionRepository} from '@project/notion/repositories';
+import {TodoistGoal, TodoistProject} from '@project/todoist/models';
 import {TodoistRepository} from '@project/todoist/repositories';
 import {
 	ProjectSyncStrategy,
@@ -8,6 +9,7 @@ import {
 	Syncer,
 	TaskSyncStrategy,
 } from '@project/types';
+import {GOAL_PREFIX, PROJECT_PREFIX} from './logger';
 
 export class RepositorySyncer implements Syncer {
 	constructor(
@@ -110,5 +112,59 @@ export class RepositorySyncer implements Syncer {
 					await this.notion.projects.linkProject(item, syncId);
 				else await this.notion.projects.linkGoal(item, syncId);
 			}
+
+		// Sorting
+		await this.sortTodoist();
+	}
+
+	private async sortTodoist() {
+		const lastToken = await this.todoist.getLastSyncToken();
+		const {projects} = await this.todoist.fetchSyncCandidates(
+			lastToken
+				? {
+						token: lastToken,
+						date: new Date(),
+				  }
+				: 'no-last-sync'
+		);
+		projects.sort((a, b) => a.todoist.order - b.todoist.order);
+
+		const correctProjectOrder = [...projects].sort(sortTodoistProjectsAndGoals);
+		const projectOrderHasChanged = correctProjectOrder.some(
+			(p, i) => p.syncId !== projects[i]?.syncId
+		);
+
+		if (projectOrderHasChanged) {
+			console.log(`${PROJECT_PREFIX}Reordering projects`);
+			this.todoist.projects.reorderProjects(correctProjectOrder);
+		}
+
+		for (const {name, goals} of projects) {
+			goals.sort((a, b) => a.todoist.order - b.todoist.order);
+			const correctGoalOrder = [...goals].sort(sortTodoistProjectsAndGoals);
+			const goalOrderHasChanged = correctGoalOrder.some(
+				(g, i) => g.syncId !== goals[i]?.syncId
+			);
+
+			if (goalOrderHasChanged) {
+				console.log(`${GOAL_PREFIX}Reordering goals of "${name}"`);
+				this.todoist.projects.reorderGoals(correctGoalOrder);
+			}
+		}
+
+		await this.todoist.commit();
 	}
 }
+
+export const sortTodoistProjectsAndGoals = (
+	a: TodoistProject | TodoistGoal,
+	b: TodoistProject | TodoistGoal
+) => {
+	if (a.blockedState === 'free' && b.blockedState !== 'free') return -1;
+	if (a.blockedState !== 'free' && b.blockedState === 'free') return 1;
+	if (a.blockedState === 'paused' && b.blockedState === 'blocked') return -1;
+	if (a.blockedState === 'blocked' && b.blockedState === 'paused') return 1;
+	if (a.todoist.order < b.todoist.order) return -1;
+	if (a.todoist.order > b.todoist.order) return 1;
+	return 0;
+};
