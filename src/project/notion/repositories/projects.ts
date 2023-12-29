@@ -3,7 +3,7 @@ import groupBy from 'object.groupby';
 import {
 	NotionGoal,
 	NotionProject,
-	blockedGoalStates,
+	pausedGoalStates,
 	closedGoalStates,
 	inProgressProjectStates,
 } from '../models';
@@ -32,6 +32,9 @@ export class NotionProjectRepository {
 					syncId: properties.syncId?.rich_text[0]?.plain_text ?? '',
 					name: properties.name?.title[0]?.plain_text ?? '',
 					isBlocked: _goals.every(g => g.isBlocked) ?? false,
+					isPaused:
+						!!properties.blocked?.select?.name ||
+						(_goals.every(g => g.isPaused) ?? false),
 					goals: _goals,
 					notion: {
 						id,
@@ -48,12 +51,14 @@ export class NotionProjectRepository {
 			const name = properties.name?.title[0]?.plain_text ?? '';
 			const syncId = properties.synccId?.rich_text[0]?.plain_text ?? '';
 			const projectId = properties.project?.relation[0]?.id ?? '';
-			const isBlocked =
-				(properties.waitingFor?.relation.length ?? 0) > 0 ||
-				blockedGoalStates.includes(properties.status?.status?.name ?? '');
+			const isBlocked = (properties.waitingFor?.relation.length ?? 0) > 0;
+			const isPaused = pausedGoalStates.includes(
+				properties.status?.status?.name ?? ''
+			);
 			return {
 				syncId,
 				name,
+				isPaused,
 				isBlocked,
 				notion: {
 					id,

@@ -3,6 +3,9 @@ import {TemporaryId, TodoistSyncApi} from '@lib/todoist';
 import groupBy from 'object.groupby';
 import {TodoistGoal, TodoistProject} from '../models';
 
+const INDICATOR_BLOCKED = '🔒';
+const INDICATOR_PAUSED = '⏸';
+
 export class TodoistProjectRepository {
 	constructor(
 		private api: TodoistSyncApi,
@@ -51,10 +54,12 @@ export class TodoistProjectRepository {
 	// Altering
 	//-------------------------------------------------------------------------
 
-	addProject(project: Pick<Project, 'name' | 'isBlocked'>): TemporaryId {
+	addProject(
+		project: Pick<Project, 'name' | 'isBlocked' | 'isPaused'>
+	): TemporaryId {
 		return this.api.addProject({
 			parentId: process.env.TODOIST_PROJECT_ROOT,
-			name: applyLockInfo(project.name, project.isBlocked),
+			name: applyLockInfo(project),
 			viewStyle: 'board',
 		});
 	}
@@ -63,19 +68,21 @@ export class TodoistProjectRepository {
 		this.api.deleteProject(syncId);
 	}
 
-	updateProject(project: Pick<Project, 'syncId' | 'name' | 'isBlocked'>): void {
+	updateProject(
+		project: Pick<Project, 'syncId' | 'name' | 'isBlocked' | 'isPaused'>
+	): void {
 		this.api.updateProject(project.syncId, {
-			name: applyLockInfo(project.name, project.isBlocked),
+			name: applyLockInfo(project),
 		});
 	}
 
 	addGoal(
-		goal: Pick<Goal, 'name' | 'isBlocked'>,
+		goal: Pick<Goal, 'name' | 'isBlocked' | 'isPaused'>,
 		projectId: string
 	): TemporaryId {
 		return this.api.addSection({
 			projectId,
-			name: applyLockInfo(goal.name, goal.isBlocked),
+			name: applyLockInfo(goal),
 		});
 	}
 
@@ -83,9 +90,11 @@ export class TodoistProjectRepository {
 		this.api.deleteSection(syncId);
 	}
 
-	updateGoal(goal: Pick<Goal, 'syncId' | 'name' | 'isBlocked'>): void {
+	updateGoal(
+		goal: Pick<Goal, 'syncId' | 'name' | 'isBlocked' | 'isPaused'>
+	): void {
 		this.api.updateSection(goal.syncId, {
-			name: applyLockInfo(goal.name, goal.isBlocked),
+			name: applyLockInfo(goal),
 		});
 		// TODO: Implement moving
 		// this.syncApi.moveSection(goal.syncId, )
@@ -93,10 +102,22 @@ export class TodoistProjectRepository {
 }
 
 const extractNameAndBlocked = (name: string) => {
-	const isBlocked = name.startsWith('🔒 ');
-	const nameWithoutLock = name.replace(/^🔒 /, '');
-	return {isBlocked, name: nameWithoutLock};
+	const isBlocked = name.startsWith(`${INDICATOR_BLOCKED} `);
+	const isPaused = name.startsWith(`${INDICATOR_PAUSED} `);
+	const nameWithoutIndicators = name.replace(
+		new RegExp(`^(${INDICATOR_BLOCKED}|${INDICATOR_PAUSED}) `),
+		''
+	);
+	return {isBlocked, isPaused, name: nameWithoutIndicators};
 };
 
-const applyLockInfo = (name: string, isBlocked: boolean) =>
-	isBlocked ? `🔒 ${name}` : name;
+const applyLockInfo = ({
+	name,
+	isBlocked,
+	isPaused,
+}: Pick<TodoistGoal | TodoistProject, 'name' | 'isBlocked' | 'isPaused'>) =>
+	isBlocked
+		? `${INDICATOR_BLOCKED} ${name}`
+		: isPaused
+		? `${INDICATOR_PAUSED} ${name}`
+		: name;

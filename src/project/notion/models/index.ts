@@ -56,7 +56,7 @@ export const inProgressProjectStates: string[] = [
 	ProjectStates.Wrapping,
 ];
 
-export const blockedGoalStates: string[] = [GoalStates.Paused];
+export const pausedGoalStates: string[] = [GoalStates.Paused];
 export const closedGoalStates: string[] = [GoalStates.Done];
 export const closedTaskStates: string[] = [TaskState.Done, TaskState.Cut];
 export const completedTaskState = TaskState.Done;
