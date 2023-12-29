@@ -1,16 +1,14 @@
 export type Project = {
 	syncId: string;
 	name: string;
-	isBlocked: boolean;
-	isPaused: boolean;
+	blockedState: BlockedState;
 	goals: Goal[];
 };
 
 export type Goal = {
 	syncId: string;
 	name: string;
-	isPaused: boolean;
-	isBlocked: boolean;
+	blockedState: BlockedState;
 };
 
 export type Task = {
@@ -23,6 +21,7 @@ export type Task = {
 	scheduledWithTime: boolean;
 };
 
+export type BlockedState = 'free' | 'blocked' | 'paused';
 export type TaskProgression =
 	| 'not-started'
 	| 'should-delegate'
