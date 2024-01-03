@@ -105,6 +105,9 @@ export class NotionTaskRepository {
 		return await this.api.pages.create({
 			parent: {database_id: this.databaseId},
 			properties: {
+				[taskSchema.syncId.id]: {
+					rich_text: [{type: 'text', text: {content: task.syncId}}],
+				},
 				[taskSchema.title.id]: {
 					title: [{type: 'text', text: {content: task.content}}],
 				},
