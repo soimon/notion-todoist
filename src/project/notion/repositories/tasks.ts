@@ -136,7 +136,16 @@ export class NotionTaskRepository {
 	}
 
 	async update(task: Task) {
-		const goalId = this.projects.requireIdFromSyncId(task.goalSyncId);
+		let goalId;
+		try {
+			goalId = {
+				[taskSchema.goal.id]: {
+					relation: [{id: this.projects.requireIdFromSyncId(task.goalSyncId)}],
+				},
+			};
+		} catch (e) {
+			goalId = {};
+		}
 		const notionId = this.requireTaskIdFromSyncId(task.syncId);
 		const state = progressionToState[task.progression];
 		return await this.api.pages.update({
@@ -145,9 +154,7 @@ export class NotionTaskRepository {
 				[taskSchema.title.id]: {
 					title: [{type: 'text', text: {content: task.content}}],
 				},
-				[taskSchema.goal.id]: {
-					relation: [{id: goalId}],
-				},
+				...goalId,
 				[taskSchema.scheduled.id]: {
 					date: task.scheduled
 						? {
