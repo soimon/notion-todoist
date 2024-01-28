@@ -23,9 +23,12 @@ export class NotionRepository {
 
 	async fetchSyncCandidates(lastSync: LastSyncInfo) {
 		const projects = await this.projects.getProjects();
-		const tasks = await this.tasks.getSyncCandidates(
-			typeof lastSync === 'string' ? undefined : lastSync.date
-		);
+		const goalIds = projects.flatMap(p => p.goals.map(g => g.syncId));
+		const tasks = (
+			await this.tasks.getSyncCandidates(
+				typeof lastSync === 'string' ? undefined : lastSync.date
+			)
+		).filter(t => goalIds.includes(t.goalSyncId));
 		return {projects, tasks};
 	}
 }
