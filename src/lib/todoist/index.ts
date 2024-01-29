@@ -6,7 +6,7 @@ import {
 	UpdateSectionArgs,
 	UpdateTaskArgs,
 } from '@doist/todoist-api-typescript';
-import fetch from 'node-fetch';
+import fetch, {Response} from 'node-fetch';
 // eslint-disable-next-line node/no-unpublished-import
 import {IterableElement} from 'type-fest';
 import {v4 as uuidv4} from 'uuid';
@@ -46,7 +46,8 @@ export class TodoistSyncApi {
 			await this.request({
 				sync_token: sinceToken,
 				resource_types: ['projects', 'items', 'sections'],
-			}).then(r => r.json());
+			}).then(this.parseData);
+
 		const data: Snapshot = {
 			projects: Array.isArray(projects) ? projects : [],
 			sections: Array.isArray(sections) ? sections : [],
@@ -54,6 +55,20 @@ export class TodoistSyncApi {
 		};
 		this.latestSyncToken = sync_token;
 		return {data, syncToken: `${sync_token}`, fullSync: Boolean(full_sync)};
+	}
+
+	private async parseData(r: Response) {
+		const text = await r.text();
+		try {
+			const json = JSON.parse(text);
+			return json;
+		} catch (e) {
+			console.log(text);
+			if (text.includes('Timeout'))
+				// eslint-disable-next-line no-process-exit
+				process.exit(0);
+			throw e;
+		}
 	}
 
 	private mergeSnapshots(
