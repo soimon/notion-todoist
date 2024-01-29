@@ -63,10 +63,13 @@ export class TodoistSyncApi {
 			const json = JSON.parse(text);
 			return json;
 		} catch (e) {
-			console.log(text);
-			if (text.includes('Timeout') || text.length === 0)
+			if (text.includes('Timeout') || text.length === 0) {
+				console.log(
+					'Todoist seems to be down. As this happens often, I will gracefully exit instead of spamming your mailbox with error messages.'
+				);
 				// eslint-disable-next-line no-process-exit
 				process.exit(0);
+			} else console.log(text);
 			throw e;
 		}
 	}
