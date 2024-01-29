@@ -64,7 +64,7 @@ export class TodoistSyncApi {
 			return json;
 		} catch (e) {
 			console.log(text);
-			if (text.includes('Timeout'))
+			if (text.includes('Timeout') || text.length === 0)
 				// eslint-disable-next-line no-process-exit
 				process.exit(0);
 			throw e;
