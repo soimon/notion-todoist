@@ -1,0 +1,9 @@
+{
+	"extends": "./node_modules/gts/",
+	"rules": {
+		"prettier/prettier": "off",
+		"quotes": "off",
+		"eol-last": "off",
+		"no-trailing-spaces": "off"
+	}
+}

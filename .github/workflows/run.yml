@@ -1,0 +1,48 @@
+name: Run
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/run.yml'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: robinraju/release-downloader@v1.8
+        id: download
+        with:
+          latest: true
+          tarBall: true
+          zipBall: false
+          out-file-path: 'release'
+          extract: true
+
+      - name: Use Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          cd release/package
+          npm install
+
+      - name: Run Node
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DB_AREAS: ${{ secrets.NOTION_DB_AREAS }}
+          NOTION_DB_PROJECTS: ${{ secrets.NOTION_DB_PROJECTS }}
+          NOTION_DB_ATTACHMENTS: ${{ secrets.NOTION_DB_ATTACHMENTS }}
+          TODOIST_TOKEN: ${{ secrets.TODOIST_TOKEN }}
+          TODOIST_PROJECT_AREAS: ${{ secrets.TODOIST_PROJECT_AREAS }}
+          TODOIST_PROJECT_RESOURCES: ${{ secrets.TODOIST_PROJECT_RESOURCES }}
+          GIST_PAT: ${{ secrets.PAT }}
+          IS_GITHUB_ACTION: true
+        run: |
+          cd release/package
+          node .
