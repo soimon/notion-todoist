@@ -13,7 +13,7 @@ configDotEnv();
 // Configuration
 //--------------------------------------------------------------------------------
 
-const DEV_ONLY_SYNC_TEST_AREA = true;
+const DEV_ONLY_SYNC_TEST_AREA = false;
 
 const projectSchema: ProjectSchema = {
 	database: process.env.NOTION_DB_PROJECTS,
