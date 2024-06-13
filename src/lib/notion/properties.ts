@@ -1,9 +1,12 @@
-import {PageObjectResponse} from '@notionhq/client/build/src/api-endpoints';
+import { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints';
+import { normalizeId } from './parsing';
 
 export type NotionPage<TSchema extends Schema> = Omit<
 	PageObjectResponse,
 	'properties'
 > & {
+	name?: string;
+	markdownName?: string;
 	properties: GetPropertiesResult<TSchema>;
 };
 
@@ -11,7 +14,12 @@ export function enhancePageProperties<TSchema extends Schema>(
 	response: PageObjectResponse,
 	schema: TSchema
 ): NotionPage<TSchema> {
-	return {...response, properties: getProperties(response, schema)};
+	return {
+		...response,
+		name: getTitle(response),
+		markdownName: getMarkdownTitle(response),
+		properties: getProperties(response, schema),
+	};
 }
 
 export const getProperties = <
@@ -32,6 +40,13 @@ export const getProperties = <
 
 export const defineSchema = <T extends Schema>(schema: T): Readonly<T> =>
 	schema;
+
+export const getPropertyName = <T extends Schema>(schema: T, id: string) => {
+	const entry = Object.entries(schema).find(
+		([, descriptor]) => typeof descriptor === 'object' && descriptor.id === id
+	);
+	return entry?.[0];
+};
 
 export type Schema<N extends string = string> = Record<N, PropertyDescriptor>;
 type PropertyDescriptor = PropertyType | {id: string; type: PropertyType};
@@ -86,6 +101,26 @@ export const getTitle = (page: PageObjectResponse): string | undefined => {
 	const titleProperty = Object.values(page.properties).find(
 		property => property.type === 'title'
 	) as ((typeof page.properties)[number] & {type: 'title'}) | undefined;
-	const titleValue = titleProperty?.title[0]?.plain_text;
+	const titleValue = titleProperty?.title.map(t => t.plain_text).join('');
 	return titleValue;
 };
+
+export const getMarkdownTitle = (
+	page: PageObjectResponse
+): string | undefined => {
+	const titleProperty = Object.values(page.properties).find(
+		property => property.type === 'title'
+	) as ((typeof page.properties)[number] & {type: 'title'}) | undefined;
+	const titleValue = titleProperty?.title
+		.map(t => (t.href ? `[**${t.plain_text}**](${t.href})` : t.plain_text))
+		.join('');
+	return titleValue;
+};
+
+export const getPlainText = (
+	property: PropertyValue<'rich_text'> | undefined
+) => property?.rich_text.map(t => t.plain_text).join('');
+
+export const getRelationIds = (
+	property: PropertyValue<'relation'> | undefined
+) => property?.relation?.map(entry => normalizeId(entry.id));

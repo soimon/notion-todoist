@@ -1,5 +1,8 @@
-import {LastSyncInfo, LastSyncInfoStore} from '@framework/sync';
-import {GithubGist} from '@vighnesh153/github-gist';
+import {
+	LastSyncInfo,
+	LastSyncInfoStore,
+} from '@project/persistence/lastsyncinfo';
+import { GithubGist } from '@vighnesh153/github-gist';
 
 export class GistLastSyncInfoStore implements LastSyncInfoStore {
 	constructor(

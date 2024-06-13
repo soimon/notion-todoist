@@ -1,5 +1,5 @@
-import {Client} from '@notionhq/client';
-import {PageObjectResponse} from '@notionhq/client/build/src/api-endpoints';
+import { Client } from '@notionhq/client';
+import { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints';
 import {
 	NotionPage,
 	Schema,
@@ -85,6 +85,7 @@ async function accumulateQueryResults(options: QueryOptions) {
 	} while (next_cursor);
 	return pages;
 }
+``;
 
 const query = (
 	{database: database_id, filter, notion}: QueryOptions,
@@ -93,7 +94,7 @@ const query = (
 	notion.databases.query({
 		database_id,
 		filter,
-		page_size: 100,
+		page_size: 500,
 		start_cursor: startAt,
 	});
 
@@ -104,7 +105,5 @@ export const getDatabaseSchema = async (options: {
 	const {properties} = await options.notion.databases.retrieve({
 		database_id: options.database,
 	});
-	return Object.fromEntries(
-		Object.entries(properties).map(([k, {type, id}]) => [k, {type, id}])
-	);
+	return Object.fromEntries(Object.entries(properties).map(([k, v]) => [k, v]));
 };

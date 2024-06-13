@@ -1,5 +1,8 @@
-import {LastSyncInfo, LastSyncInfoStore} from '@framework/sync';
-import {readFile, writeFile} from 'fs/promises';
+import {
+	LastSyncInfo,
+	LastSyncInfoStore,
+} from '@project/persistence/lastsyncinfo';
+import { readFile, writeFile } from 'fs/promises';
 
 export class ConfigFileLastSyncInfoStore implements LastSyncInfoStore {
 	constructor(private configFilePath: string) {}

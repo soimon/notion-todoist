@@ -1,130 +1,131 @@
 require('module-alias/register');
-import {LastSyncInfoStore} from '@framework/sync';
-import {TodoistSyncApi} from '@lib/todoist';
-import {Client} from '@notionhq/client';
-import {NotionRepository} from '@project/notion/repositories';
-import {GistLastSyncInfoStore} from '@project/persistence/gist';
-import {
-	doNothingProjectStrategy,
-	doNothingTaskStrategy,
-} from '@project/strategies/do-nothing';
-import {
-	followNotionProjectStrategy,
-	followNotionTaskStrategy,
-} from '@project/strategies/follow-notion';
-import {
-	pickTodoistIfInSnapshotProjectStrategy,
-	pickTodoistIfInSnapshotTaskStrategy,
-} from '@project/strategies/pick-todoist-if-in-snapshot';
-import {SyncLogger} from '@project/syncers/logger';
-import {TodoistRepository} from '@project/todoist/repositories';
-import {SyncStrategy} from '@project/types';
-import dotenv from 'dotenv';
-import {log} from './framework/utils/dev';
-import {RepositorySyncer} from './project/syncers/repository';
-import {ConfigFileLastSyncInfoStore} from '@project/persistence/configfile';
-dotenv.config();
-console.clear();
+import { Color } from '@lib/todoist';
+import { runLogged } from '@lib/utils/dev';
+import { connectIntegrations } from '@project/integrations';
+import { NoteSchema, ProjectSchema } from '@project/mutating/notion';
+import { createLabelSyncer } from '@project/sync-labels';
+import { createProjectSyncer } from '@project/sync-projects';
+import { createTaskSyncer } from '@project/sync-tasks';
+import { config as configDotEnv } from 'dotenv';
+configDotEnv();
 
-const SYNC_PROJECTS = true;
-const SYNC_TASKS = true;
-const SYNC_FORCE_FULL = false;
+//--------------------------------------------------------------------------------
+// Configuration
+//--------------------------------------------------------------------------------
 
-async function main() {
-	// Sync info
+const DEV_ONLY_SYNC_TEST_AREA = true;
 
-	const lastSyncInfoStore: LastSyncInfoStore = process.env.GIST_PAT
-		? new GistLastSyncInfoStore(
-				'5cb9abe9d92507f9687bd7ec2c7ce239',
-				'last-sync-info.json',
-				process.env.GIST_PAT
-		  )
-		: new ConfigFileLastSyncInfoStore('./last-sync-info.json');
-	const lastSyncInfo = await lastSyncInfoStore.getLastSyncInfo(SYNC_FORCE_FULL);
+const projectSchema: ProjectSchema = {
+	database: process.env.NOTION_DB_PROJECTS,
+	fields: {
+		archivedState: 'GNpW',
+		goal: '%7CjQZ',
+		areas: 'fdjt',
+		place: 'QCy%7B',
+		people: 'F%7DnR',
+		verb: '%7BWG%3C',
+		waiting: 'yVIB',
+		archived: 'OQcZ',
+		todoist: '%3Ff%5Em',
+	},
+	filterValueOfActive: 'Actief',
+	idOfArchivedOption: 'e363f213-a760-4b0f-a87c-1cd0f04624f7',
+};
+const noteSchema: NoteSchema = {
+	database: process.env.NOTION_DB_ATTACHMENTS,
+	fields: {files: '%3ATLZ', date: '%5Bhjz'},
+};
 
-	if (typeof lastSyncInfo !== 'string')
-		console.log(`Last sync: ${lastSyncInfo.date}`);
-	else console.log(`Performing full sync`);
+const notionToTodoistColors: Record<string, Color> = {
+	gray: 'charcoal',
+	lightgray: 'grey',
+	brown: 'taupe',
+	yellow: 'yellow',
+	orange: 'orange',
+	green: 'green',
+	blue: 'teal',
+	purple: 'grape',
+	pink: 'magenta',
+	red: 'red',
+};
 
-	// Get data from repositories
-
-	console.log('\nConnecting to apis...');
-	console.time('Elapsed');
-	const {notion, todoist} = createRepositories();
-	console.timeEnd('Elapsed');
-
-	console.log('\nFetching data...');
-	console.time('Elapsed');
-	const [
-		{projects: notionProjects, tasks: notionTasks},
-		{projects: todoistProjects, tasks: todoistTasks},
-	] = await Promise.all([
-		notion.fetchSyncCandidates(lastSyncInfo),
-		todoist.fetchSyncCandidates(lastSyncInfo),
-	]);
-
-	const lastTodoistSnapshot = todoist.getLatestSnapshot();
-	console.timeEnd('Elapsed');
-
-	// Determine stategies
-
-	const projectStrategy = SYNC_PROJECTS
-		? lastSyncInfo === 'no-last-sync' || !lastTodoistSnapshot
-			? followNotionProjectStrategy(notionProjects, todoistProjects)
-			: pickTodoistIfInSnapshotProjectStrategy(
-					notionProjects,
-					todoistProjects,
-					lastSyncInfo,
-					lastTodoistSnapshot
-			  )
-		: doNothingProjectStrategy(notionProjects, todoistProjects);
-
-	const taskStrategy = SYNC_TASKS
-		? lastSyncInfo === 'no-last-sync' || !lastTodoistSnapshot
-			? followNotionTaskStrategy(notionTasks, todoistTasks)
-			: pickTodoistIfInSnapshotTaskStrategy(
-					notionTasks,
-					todoistTasks,
-					lastSyncInfo,
-					lastTodoistSnapshot
-			  )
-		: doNothingTaskStrategy(notionTasks, todoistTasks);
-
-	// Sync projects
-
-	await sync({projects: projectStrategy, tasks: taskStrategy}, notion, todoist);
-
-	// Store sync info
-
-	const token = await todoist.getLastSyncToken();
-	if (token) await lastSyncInfoStore.setLastSyncInfo(token);
-}
-
-const createRepositories = () => ({
-	notion: new NotionRepository(
-		new Client({
-			auth: process.env.NOTION_TOKEN,
-		}),
-		process.env.NOTION_DB_PROJECTS,
-		process.env.NOTION_DB_GOALS,
-		process.env.NOTION_DB_TASKS
-	),
-	todoist: new TodoistRepository(
-		new TodoistSyncApi(process.env.TODOIST_TOKEN),
-		process.env.TODOIST_PROJECT_ROOT
-	),
+const {prepare: prepareLabels, stage: stageLabels} = createLabelSyncer({
+	projectSchema,
+	verbColor: 'taupe',
+	placeColor: 'green',
 });
 
-async function sync(
-	strategies: SyncStrategy,
-	notion: NotionRepository,
-	todoist: TodoistRepository
-) {
-	log('strategy-projects', strategies.projects);
-	log('strategy-tasks', strategies.tasks);
+const {prepare: prepareProjects, stage: stageProjects} = createProjectSyncer({
+	rootProjects: {
+		Area: process.env.TODOIST_PROJECT_AREAS,
+		Resource: process.env.TODOIST_PROJECT_RESOURCES,
+	},
+	areaSchemaIds: {
+		database: process.env.NOTION_DB_AREAS,
+		type: 'wMUV',
+		emoji: 'fvWP',
+		category: 'WcyD',
+	},
+	notionToTodoistColors,
+	colorOrder: ['blue', 'pink', 'green', 'brown', 'orange', 'purple'],
+});
 
-	const syncer = new SyncLogger(new RepositorySyncer(notion, todoist));
-	await syncer.sync(strategies);
+const {prepare: prepareTasks, stage: stageTasks} = createTaskSyncer({
+	schema: projectSchema,
+	onlySyncThisArea: DEV_ONLY_SYNC_TEST_AREA
+		? '12fc046759aa4bc188398a60f0cc0b28'
+		: undefined,
+	recurringSymbol: '🔄',
+});
+
+// const {prepare: prepareNotes, stage: stageNotes} = createNoteSyncer({
+// 	schema: noteSchema,
+// });
+
+//--------------------------------------------------------------------------------
+// Main
+//--------------------------------------------------------------------------------
+
+async function main() {
+	const {integrations, mutationQueues, commit} = await connectIntegrations(
+		projectSchema,
+		noteSchema
+	);
+
+	const labelsPreparation = await runLogged(
+		() => prepareLabels(integrations),
+		'Fetching labels...',
+		'🏷️ '
+	);
+	const projectsPreparation = await runLogged(
+		() => prepareProjects(integrations),
+		'Preparing projects...',
+		'📂'
+	);
+
+	const labels = await runLogged(
+		() => stageLabels(labelsPreparation, mutationQueues),
+		'Diffing labels...',
+		'🏷️ '
+	);
+	const {areaProjectsMap} = await runLogged(
+		() => stageProjects(projectsPreparation, mutationQueues),
+		'Diffing projects...',
+		'📂'
+	);
+	const tasksPreparation = await runLogged(
+		() => prepareTasks(integrations, areaProjectsMap, labels),
+		'Preparing tasks...',
+		'📝'
+	);
+	await runLogged(
+		() => stageTasks(tasksPreparation, mutationQueues),
+		'Diffing tasks...',
+		'📝'
+	);
+	await commit();
 }
 
+// Run
+console.clear();
 main();
