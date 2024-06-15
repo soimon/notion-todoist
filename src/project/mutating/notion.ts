@@ -270,6 +270,7 @@ export type ProjectSchema = {
 	database: string;
 	fields: Readonly<{
 		archivedState: string;
+		isPostponed: string;
 		goal: string;
 		areas: string;
 		place: string;

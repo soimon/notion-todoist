@@ -19,6 +19,7 @@ const projectSchema: ProjectSchema = {
 	database: process.env.NOTION_DB_PROJECTS,
 	fields: {
 		archivedState: 'GNpW',
+		isPostponed: '%3A%3FZe',
 		goal: '%7CjQZ',
 		areas: 'fdjt',
 		place: 'QCy%7B',
@@ -123,7 +124,7 @@ async function main() {
 		'Diffing tasks...',
 		'📝'
 	);
-	// await commit();
+	await commit();
 }
 
 // Run

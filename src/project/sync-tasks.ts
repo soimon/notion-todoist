@@ -243,6 +243,7 @@ export function createTaskSyncer(props: ConfigProps) {
 			places: properties.Places?.multi_select?.map(({name}) => name) ?? [],
 			verb: properties.Verb?.select?.name,
 			waitingForDate,
+			isPostponed: checkPostponed(properties, waitingForDate),
 			children: [],
 			todoistData,
 			notionData: properties,
@@ -259,6 +260,15 @@ export function createTaskSyncer(props: ConfigProps) {
 			return new Date(firstItem.mention.date.start);
 		} else return;
 	}
+
+	const checkPostponed = (
+		properties: NotionProject['properties'],
+		waitingForDate: Date | undefined
+	) =>
+		(properties['@Postponed']?.formula?.type === 'boolean'
+			? Boolean(properties['@Postponed']?.formula.boolean)
+			: false) ||
+		(Boolean(properties.Waiting?.rich_text.length) && !waitingForDate);
 
 	function mapToHierarchy(projects: Map<string, TaskDTO>) {
 		const root = new Map<string, TaskDTO[]>();
@@ -450,6 +460,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		verb: string | undefined;
 		people: string[];
 		places: string[];
+		isPostponed?: boolean;
 		waitingForDate?: Date;
 		children: TaskDTO[];
 		todoistData?: SyncedTask;
@@ -466,6 +477,10 @@ export function createTaskSyncer(props: ConfigProps) {
 		'@Archived': {
 			type: 'formula',
 			id: props.schema.fields.archivedState,
+		},
+		'@Postponed': {
+			type: 'formula',
+			id: props.schema.fields.isPostponed,
 		},
 		Name: {type: 'title', id: 'title'},
 		Todoist: {type: 'url', id: props.schema.fields.todoist},
