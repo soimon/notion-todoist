@@ -20,6 +20,7 @@ export type ConfigProps = {
 	schema: ProjectSchema;
 	onlySyncThisArea?: string;
 	recurringSymbol: string;
+	postponedSymbol: string;
 };
 
 export function createTaskSyncer(props: ConfigProps) {
@@ -317,7 +318,7 @@ export function createTaskSyncer(props: ConfigProps) {
 			if (action.includes(SyncAction.Create)) {
 				id = todoist.createTask(
 					{
-						content: task.name,
+						content: prefixNameWithPostponed(task.name, task.isPostponed),
 						date: task.waitingForDate,
 						...parentInfo,
 						labels: generateLabels(task),
@@ -338,7 +339,10 @@ export function createTaskSyncer(props: ConfigProps) {
 				todoist.updateTask(
 					id,
 					{
-						content: task.name,
+						content: prefixNameWithPostponed(
+							removePrefixes(task.name),
+							task.isPostponed
+						),
 						labels: generateLabels(task),
 						date: task.waitingForDate,
 					},
@@ -348,7 +352,10 @@ export function createTaskSyncer(props: ConfigProps) {
 				notion.updateTask(
 					task.id,
 					{
-						name: prefixNameWithRecurring(td.content, td.due?.is_recurring),
+						name: prefixNameWithRecurring(
+							removePrefixes(td.content),
+							td.due?.is_recurring
+						),
 						verb: td.labels.find(label => labels.verbs.has(label)),
 						places: td.labels.filter(label => labels.places.has(label)),
 						waitingForDate: td.due?.date ? new Date(td.due?.date) : undefined,
@@ -376,6 +383,16 @@ export function createTaskSyncer(props: ConfigProps) {
 		name: string,
 		isRecurring?: boolean
 	): string => `${isRecurring ? props.recurringSymbol + ' ' : ''}${name}`;
+
+	const prefixNameWithPostponed = (
+		name: string,
+		isPostponed?: boolean
+	): string => `${isPostponed ? props.postponedSymbol + ' ' : ''}${name}`;
+
+	const removePrefixes = (name: string) =>
+		name
+			.replace(new RegExp(`^${props.recurringSymbol} `), '')
+			.replace(new RegExp(`^${props.postponedSymbol} `), '');
 
 	const generateLabels = (task: TaskDTO) => [
 		...(task.verb ? [task.verb] : []),
@@ -420,7 +437,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		(task.waitingForDate
 			? makeIsoScheduledString(task.waitingForDate, false)
 			: undefined) === todoistData.due?.date &&
-		task.name.trim() ===
+		prefixNameWithPostponed(task.name.trim(), task.isPostponed) ===
 			prefixNameWithRecurring(
 				todoistData.content.trim(),
 				todoistData.due?.is_recurring
