@@ -7,7 +7,7 @@ import {
 	NotionPage,
 	queryDatabase,
 } from '@lib/notion';
-import {ApiComment, ApiTask} from '@lib/todoist';
+import {ApiComment, ApiTask, TodoistSyncApi} from '@lib/todoist';
 import {flipMap} from '@lib/utils/collections';
 import {makeIsoScheduledString} from '@lib/utils/time';
 import {Client as NotionClient} from '@notionhq/client';
@@ -28,16 +28,39 @@ export function createTaskSyncer(props: ConfigProps) {
 		areaProjectsMap: Map<string, string>,
 		labels: {verbs: Set<string>; places: Set<string>}
 	) {
+		const dev = getDevAlterations(areaProjectsMap, todoist);
 		return {
 			areaProjectsMap,
 			labels,
-			tasks: todoist.getTasks(),
+			tasks: dev.tasks ?? todoist.getTasks(),
 			comments: todoist.getComments(),
 			incrementalTasks: incrementalTodoist.getTasks(),
-			notionTasks: await fetchVisibleNotionTasks(notion),
+			notionTasks: await fetchVisibleNotionTasks(notion, dev.filter),
 		};
 	}
 	type Preparation = Awaited<ReturnType<typeof prepare>>;
+
+	function getDevAlterations(
+		areaProjectsMap: Map<string, string>,
+		todoist: TodoistSyncApi
+	) {
+		if (!props.onlySyncThisArea) return {};
+		const devProject = areaProjectsMap.get(props.onlySyncThisArea);
+		const devFilteredTasks = todoist
+			.getTasks()
+			.filter(t => t.project_id === devProject);
+		return {
+			tasks: devFilteredTasks,
+			filter: [
+				{
+					property: props.schema.fields.areas,
+					relation: {
+						contains: props.onlySyncThisArea,
+					},
+				},
+			],
+		};
+	}
 
 	function stage(
 		{
@@ -164,7 +187,10 @@ export function createTaskSyncer(props: ConfigProps) {
 	// Notion data querying and structuring
 	//--------------------------------------------------------------------------------
 
-	function fetchVisibleNotionTasks(notion: NotionClient) {
+	function fetchVisibleNotionTasks(
+		notion: NotionClient,
+		filter: ReturnType<typeof getDevAlterations>['filter']
+	) {
 		return queryDatabase({
 			notion,
 			schema: taskSchema,
@@ -175,16 +201,7 @@ export function createTaskSyncer(props: ConfigProps) {
 						property: props.schema.fields.archivedState,
 						formula: {string: {equals: props.schema.filterValueOfActive}},
 					},
-					...(props.onlySyncThisArea
-						? [
-								{
-									property: props.schema.fields.areas,
-									relation: {
-										contains: props.onlySyncThisArea,
-									},
-								},
-						  ]
-						: []),
+					...(filter ?? []),
 				],
 			},
 		});

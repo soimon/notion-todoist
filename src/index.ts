@@ -13,7 +13,7 @@ configDotEnv();
 // Configuration
 //--------------------------------------------------------------------------------
 
-const DEV_ONLY_SYNC_TEST_AREA = false;
+const DEV_ONLY_SYNC_TEST_AREA = process.env.DEV;
 
 const projectSchema: ProjectSchema = {
 	database: process.env.NOTION_DB_PROJECTS,
@@ -123,7 +123,7 @@ async function main() {
 		'Diffing tasks...',
 		'📝'
 	);
-	await commit();
+	// await commit();
 }
 
 // Run
