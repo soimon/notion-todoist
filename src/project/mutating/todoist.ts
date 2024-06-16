@@ -70,7 +70,7 @@ export class TodoistMutationQueue {
 	}
 
 	updateLabel(id: string, data: {name: string; color: Color; order: number}) {
-		this.client.addLabel(data);
+		this.client.updateLabel(id, data);
 		this.logs.push(`Update label ${data.name}`);
 	}
 
