@@ -90,7 +90,7 @@ export class NotionMutationQueue {
 					}),
 					...(data.waitingForDate && {
 						[this.projectSchema.fields.waiting]: {
-							rich_text: [createDateMention(data.waitingForDate)],
+							rich_text: createDateMention(data.waitingForDate),
 						},
 					}),
 					...(data.places.length && {
@@ -142,11 +142,11 @@ export class NotionMutationQueue {
 					}),
 
 					// Waiting for date
-					...(data.waitingForDate && {
+					...{
 						[this.projectSchema.fields.waiting]: {
 							rich_text: waitingRichText?.length
 								? [
-										createDateMention(data.waitingForDate),
+										...createDateMention(data.waitingForDate),
 										...(!(
 											waitingRichText[0]?.type === 'mention' &&
 											waitingRichText[0]?.mention.type === 'date'
@@ -160,9 +160,9 @@ export class NotionMutationQueue {
 												: 0
 										),
 								  ]
-								: [createDateMention(data.waitingForDate)],
+								: createDateMention(data.waitingForDate),
 						},
-					}),
+					},
 				},
 			});
 			this.syncQueue.push({
@@ -257,14 +257,18 @@ function formatTitle(text: string) {
 }
 
 const createDateMention = (date?: Date) =>
-	date && {
-		type: 'mention',
-		mention: {
-			date: {
-				start: makeIsoScheduledString(date, false),
-			},
-		},
-	};
+	date
+		? [
+				{
+					type: 'mention',
+					mention: {
+						date: {
+							start: makeIsoScheduledString(date, false),
+						},
+					},
+				},
+		  ]
+		: [];
 
 export type ProjectSchema = {
 	database: string;
