@@ -321,7 +321,7 @@ export function createTaskSyncer(props: ConfigProps) {
 						content: prefixNameWithPostponed(task.name, task.isPostponed),
 						date: task.waitingForDate,
 						...parentInfo,
-						labels: generateLabels(task),
+						labels: generateLabelsTodoistShouldHave(task),
 					},
 					{notionId: task.id}
 				);
@@ -343,7 +343,7 @@ export function createTaskSyncer(props: ConfigProps) {
 							removePrefixes(task.name),
 							task.isPostponed
 						),
-						labels: generateLabels(task),
+						labels: generateLabelsTodoistShouldHave(task),
 						date: task.waitingForDate,
 					},
 					{notionId: task.id, todoistCommentId: td.syncCommentId}
@@ -392,13 +392,13 @@ export function createTaskSyncer(props: ConfigProps) {
 	const removePrefixes = (name: string) =>
 		name
 			.replace(new RegExp(`^${props.recurringSymbol} `), '')
-			.replace(new RegExp(`^${props.postponedSymbol} `), '');
+			.replace(new RegExp(`^${props.postponedSymbol} `), '')
+			.trim();
 
-	const generateLabels = (task: TaskDTO) => [
-		...(task.verb ? [task.verb] : []),
-		...task.places,
-		...task.people,
-	];
+	const generateLabelsTodoistShouldHave = (task: TaskDTO) =>
+		task.isPostponed
+			? []
+			: [...(task.verb ? [task.verb] : []), ...task.places, ...task.people];
 
 	const determineTaskActions = (
 		task: TaskDTO,
@@ -413,7 +413,8 @@ export function createTaskSyncer(props: ConfigProps) {
 		} else {
 			const td = task.todoistData;
 			const isAlteredInTodoist =
-				td.contentHash !== td.syncStamp?.hash || td.due?.is_recurring;
+				(td.contentHash !== td.syncStamp?.hash || td.due?.is_recurring) &&
+				!task.isPostponed;
 			if (!areTasksEqual(task, td))
 				actions.push(
 					isAlteredInTodoist ? SyncAction.UpdateInNotion : SyncAction.Update
@@ -426,9 +427,7 @@ export function createTaskSyncer(props: ConfigProps) {
 	const wasCompletedInTodoist = (task: TaskDTO, completedTasks: ApiTask[]) => {
 		return (
 			completedTasks.find(
-				t =>
-					t.content.replace(props.recurringSymbol, '').trim() ===
-					task.name.replace(props.recurringSymbol, '').trim()
+				t => removePrefixes(t.content) === removePrefixes(task.name)
 			) !== undefined
 		);
 	};
@@ -443,7 +442,7 @@ export function createTaskSyncer(props: ConfigProps) {
 				todoistData.due?.is_recurring
 			) &&
 		task.todoistData?.labels.sort().join() ===
-			generateLabels(task).sort().join();
+			generateLabelsTodoistShouldHave(task).sort().join();
 
 	const isSomewhereElse = (
 		td: Pick<ApiTask, 'parent_id' | 'project_id'>,
