@@ -90,7 +90,7 @@ export class NotionMutationQueue {
 					}),
 					...(data.waitingForDate && {
 						[this.projectSchema.fields.waiting]: {
-							rich_text: createDateMention(data.waitingForDate),
+							rich_text: [createDateMention(data.waitingForDate)],
 						},
 					}),
 					...(data.places.length && {
@@ -122,8 +122,13 @@ export class NotionMutationQueue {
 		pair: ExistingPairData
 	) {
 		this.taskCounters.update++;
+
+		const waiting = getUpdatedWaitingFor(
+			data.waitingForDate,
+			original.Waiting?.rich_text
+		);
+
 		this.operations.push(async notion => {
-			const waitingRichText = original.Waiting?.rich_text;
 			notion.pages.update({
 				page_id: id,
 				properties: {
@@ -142,27 +147,11 @@ export class NotionMutationQueue {
 					}),
 
 					// Waiting for date
-					...{
+					...(waiting && {
 						[this.projectSchema.fields.waiting]: {
-							rich_text: waitingRichText?.length
-								? [
-										...createDateMention(data.waitingForDate),
-										...(!(
-											waitingRichText[0]?.type === 'mention' &&
-											waitingRichText[0]?.mention.type === 'date'
-										)
-											? [{text: {content: ', '}}]
-											: []),
-										...waitingRichText.slice(
-											waitingRichText[0]?.type === 'mention' &&
-												waitingRichText[0]?.mention.type === 'date'
-												? 1
-												: 0
-										),
-								  ]
-								: createDateMention(data.waitingForDate),
+							rich_text: waiting,
 						},
-					},
+					}),
 				},
 			});
 			this.syncQueue.push({
@@ -240,6 +229,47 @@ export class NotionMutationQueue {
 	}
 }
 
+const getUpdatedWaitingFor = (
+	date: Date | undefined,
+	original: RichTextItemResponse[] | undefined
+) => {
+	const dateMention = createDateMention(date);
+	if (!original?.length) return dateMention;
+	else {
+		const firstMentionWasDate = checkFirstMentionForDate(original);
+		if (dateMention) {
+			if (firstMentionWasDate) return [dateMention, ...original.slice(1)];
+			else return [dateMention, {text: {content: ', '}}, ...original];
+		} else {
+			if (firstMentionWasDate) {
+				const withoutDate = original.slice(1);
+				if (withoutDate[0]?.type === 'text')
+					withoutDate[0].text.content = withoutDate[0].text.content.replace(
+						/^, /,
+						''
+					);
+				if (
+					withoutDate
+						.map(item => item.plain_text)
+						.join('')
+						.trim() === ''
+				)
+					return [];
+				return withoutDate;
+			} else return undefined;
+		}
+	}
+};
+
+function checkFirstMentionForDate(
+	waitingRichText: RichTextItemResponse[]
+): boolean {
+	return (
+		waitingRichText[0]?.type === 'mention' &&
+		waitingRichText[0]?.mention.type === 'date'
+	);
+}
+
 function formatTitle(text: string) {
 	if (hasLinks(text)) {
 		const linkSearch = /\[.*?\]\((.*?)\)/g;
@@ -258,17 +288,15 @@ function formatTitle(text: string) {
 
 const createDateMention = (date?: Date) =>
 	date
-		? [
-				{
-					type: 'mention',
-					mention: {
-						date: {
-							start: makeIsoScheduledString(date, false),
-						},
+		? {
+				type: 'mention',
+				mention: {
+					date: {
+						start: makeIsoScheduledString(date, false),
 					},
 				},
-		  ]
-		: [];
+		  }
+		: undefined;
 
 export type ProjectSchema = {
 	database: string;
