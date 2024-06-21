@@ -234,7 +234,7 @@ const getUpdatedWaitingFor = (
 	original: RichTextItemResponse[] | undefined
 ) => {
 	const dateMention = createDateMention(date);
-	if (!original?.length) return dateMention;
+	if (!original?.length) return [dateMention];
 	else {
 		const firstMentionWasDate = checkFirstMentionForDate(original);
 		if (dateMention) {
