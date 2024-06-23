@@ -1,12 +1,12 @@
 require('module-alias/register');
-import { Color } from '@lib/todoist';
-import { runLogged } from '@lib/utils/dev';
-import { connectIntegrations } from '@project/integrations';
-import { NoteSchema, ProjectSchema } from '@project/mutating/notion';
-import { createLabelSyncer } from '@project/sync-labels';
-import { createProjectSyncer } from '@project/sync-projects';
-import { createTaskSyncer } from '@project/sync-tasks';
-import { config as configDotEnv } from 'dotenv';
+import {Color} from '@lib/todoist';
+import {runLogged} from '@lib/utils/dev';
+import {connectIntegrations} from '@project/integrations';
+import {NoteSchema, ProjectSchema} from '@project/mutating/notion';
+import {createLabelSyncer} from '@project/sync-labels';
+import {createProjectSyncer} from '@project/sync-projects';
+import {createTaskSyncer} from '@project/sync-tasks';
+import {config as configDotEnv} from 'dotenv';
 configDotEnv();
 
 //--------------------------------------------------------------------------------

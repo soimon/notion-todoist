@@ -135,9 +135,11 @@ export class NotionMutationQueue {
 					title: {title: formatTitle(data.name)},
 
 					// Verb
-					...(data.verb && {
-						[this.projectSchema.fields.verb]: {select: {name: data.verb}},
-					}),
+					...{
+						[this.projectSchema.fields.verb]: {
+							select: data.verb ? {name: data.verb} : null,
+						},
+					},
 
 					// Places
 					[this.projectSchema.fields.place]: {
