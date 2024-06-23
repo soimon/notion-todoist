@@ -140,11 +140,9 @@ export class NotionMutationQueue {
 					}),
 
 					// Places
-					...(data.places.length && {
-						[this.projectSchema.fields.place]: {
-							multi_select: data.places.map(name => ({name})),
-						},
-					}),
+					[this.projectSchema.fields.place]: {
+						multi_select: data.places.map(name => ({name})),
+					},
 
 					// Waiting for date
 					...(waiting && {
