@@ -363,6 +363,12 @@ export function createTaskSyncer(props: ConfigProps) {
 					task.notionData,
 					{todoistCommentId: td.syncCommentId, todoistHash: td.contentHash}
 				);
+			if (action.includes(SyncAction.ReflagInNotion))
+				notion.updateTaskFlags(task.id, {
+					isScheduled: !!(action.includes(SyncAction.Update)
+						? task.waitingForDate
+						: td?.due?.date),
+				});
 			if (action.includes(SyncAction.Move)) todoist.moveTask(id, parentInfo);
 		}
 
@@ -419,6 +425,7 @@ export function createTaskSyncer(props: ConfigProps) {
 				actions.push(
 					isAlteredInTodoist ? SyncAction.UpdateInNotion : SyncAction.Update
 				);
+			if (isDateChanged(task, td)) actions.push(SyncAction.ReflagInNotion);
 			if (isSomewhereElse(td, parentInfo)) actions.push(SyncAction.Move);
 		}
 		return actions;
@@ -433,9 +440,7 @@ export function createTaskSyncer(props: ConfigProps) {
 	};
 
 	const areTasksEqual = (task: TaskDTO, todoistData: ApiTask) =>
-		(task.waitingForDate
-			? makeIsoScheduledString(task.waitingForDate, false)
-			: undefined) === todoistData.due?.date &&
+		!isDateChanged(task, todoistData) &&
 		prefixNameWithPostponed(task.name.trim(), task.isPostponed) ===
 			prefixNameWithRecurring(
 				todoistData.content.trim(),
@@ -443,6 +448,11 @@ export function createTaskSyncer(props: ConfigProps) {
 			) &&
 		task.todoistData?.labels.sort().join() ===
 			generateLabelsTodoistShouldHave(task).sort().join();
+
+	const isDateChanged = (task: TaskDTO, todoistData: ApiTask) =>
+		(task.waitingForDate
+			? makeIsoScheduledString(task.waitingForDate, false)
+			: undefined) !== todoistData.due?.date;
 
 	const isSomewhereElse = (
 		td: Pick<ApiTask, 'parent_id' | 'project_id'>,
@@ -466,6 +476,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		Move,
 		CompleteInNotion,
 		UpdateInNotion,
+		ReflagInNotion,
 	}
 
 	type TaskDTO = {

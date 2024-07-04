@@ -93,6 +93,12 @@ export class NotionMutationQueue {
 							rich_text: [createDateMention(data.waitingForDate)],
 						},
 					}),
+					...{
+						[this.projectSchema.fields.isScheduled]: {
+							type: 'checkbox',
+							checkbox: data.waitingForDate ? true : false,
+						},
+					},
 					...(data.places.length && {
 						[this.projectSchema.fields.place]: {
 							multi_select: data.places.map(name => ({name})),
@@ -104,6 +110,25 @@ export class NotionMutationQueue {
 				notionId: id,
 				todoistId: pair.todoistTaskId,
 				hash: pair.todoistHash,
+			});
+		});
+	}
+
+	updateTaskFlags(id: string, flags: {isScheduled?: boolean}) {
+		this.taskCounters.update++;
+
+		this.operations.push(async notion => {
+			notion.pages.update({
+				page_id: id,
+				properties: {
+					// Is scheduled
+					...{
+						[this.projectSchema.fields.isScheduled]: {
+							type: 'checkbox',
+							checkbox: flags.isScheduled ?? false,
+						},
+					},
+				},
 			});
 		});
 	}
@@ -303,6 +328,7 @@ export type ProjectSchema = {
 	fields: Readonly<{
 		archivedState: string;
 		isPostponed: string;
+		isScheduled: string;
 		goal: string;
 		areas: string;
 		place: string;
