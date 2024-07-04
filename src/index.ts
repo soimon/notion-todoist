@@ -1,6 +1,7 @@
 require('module-alias/register');
 import {Color} from '@lib/todoist';
 import {runLogged} from '@lib/utils/dev';
+import {isNotionClientError} from '@notionhq/client';
 import {connectIntegrations} from '@project/integrations';
 import {NoteSchema, ProjectSchema} from '@project/mutating/notion';
 import {createLabelSyncer} from '@project/sync-labels';
@@ -129,5 +130,26 @@ async function main() {
 }
 
 // Run
+
 console.clear();
-main();
+
+(async () => {
+	try {
+		await main();
+	} catch (error) {
+		if (isNotionClientError(error))
+			if (
+				[
+					'notionhq_client_request_timeout',
+					'invalid-json',
+					'service_unavailable',
+				].includes(error.code)
+			)
+				return showServiceError();
+		throw error;
+	}
+})();
+
+function showServiceError() {
+	console.error('Error with external services. Exiting gracefully.');
+}
