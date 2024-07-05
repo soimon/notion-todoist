@@ -51,11 +51,14 @@ export function createNoteSyncer(props: ConfigProps) {
 			parentNotionId: notionIdByTodoistId.get(comment.item_id),
 			date: new Date(comment.posted_at),
 			reactions: Object.keys(comment.reactions ?? {}),
-			file: comment.file_attachment,
+			file:
+				comment.file_attachment?.resource_type !== 'website'
+					? comment.file_attachment
+					: undefined,
 		});
 	type DTO = ReturnType<ReturnType<typeof transformToDTO>>;
 
-	const filterIrrelevant = ({content, file, parentNotionId}: DTO) => {
+	const filterIrrelevant = ({content, parentNotionId}: DTO) => {
 		const hasRelevantParent = parentNotionId !== undefined;
 		const isNotASyncStamp = extractSyncStamp(content) === undefined;
 		return hasRelevantParent && isNotASyncStamp;

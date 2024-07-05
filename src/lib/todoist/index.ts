@@ -439,7 +439,7 @@ export type ApiAttachment = {
 	file_name: string;
 	file_size: number;
 	file_url: string;
-	resource_type: 'file' | 'audio' | 'image';
+	resource_type: 'file' | 'audio' | 'image' | 'website';
 	upload_state: 'pending' | 'completed';
 };
 
