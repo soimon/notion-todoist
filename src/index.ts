@@ -14,7 +14,7 @@ configDotEnv();
 // Configuration
 //--------------------------------------------------------------------------------
 
-const DEV_ONLY_SYNC_TEST_AREA = process.env.DEV;
+const DEV_ONLY_SYNC_TEST_AREA = !!process.env.DEV;
 
 const projectSchema: ProjectSchema = {
 	database: process.env.NOTION_DB_PROJECTS,
@@ -93,7 +93,8 @@ const {prepare: prepareTasks, stage: stageTasks} = createTaskSyncer({
 async function main() {
 	const {integrations, mutationQueues, commit} = await connectIntegrations(
 		projectSchema,
-		noteSchema
+		noteSchema,
+		DEV_ONLY_SYNC_TEST_AREA
 	);
 
 	const labelsPreparation = await runLogged(

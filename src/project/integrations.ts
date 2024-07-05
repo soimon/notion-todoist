@@ -13,13 +13,14 @@ import {LastSyncInfo, LastSyncInfoStore} from './persistence/lastsyncinfo';
 
 export async function connectIntegrations(
 	projectSchema: ProjectSchema,
-	noteSchema: NoteSchema
+	noteSchema: NoteSchema,
+	isDev: boolean
 ): Promise<{
 	mutationQueues: MutationQueues;
 	integrations: Integrations;
 	commit: () => Promise<void>;
 }> {
-	const {lastSyncInfo, lastSyncInfoStore} = await getLastSyncInformation();
+	const {lastSyncInfo, lastSyncInfoStore} = await getLastSyncInformation(isDev);
 	const notion = initNotion();
 	const [todoist, incrementalTodoist] = await runLogged(
 		async () => [
@@ -62,11 +63,11 @@ export type Integrations = {
 	notion: NotionClient;
 };
 
-const getLastSyncInformation = async () => {
+const getLastSyncInformation = async (isDev = false) => {
 	const lastSyncInfoStore: LastSyncInfoStore = process.env.GIST_PAT
 		? new GistLastSyncInfoStore(
 				'5cb9abe9d92507f9687bd7ec2c7ce239',
-				'last-sync-info.json',
+				isDev ? 'last-sync-info-dev.json' : 'last-sync-info.json',
 				process.env.GIST_PAT
 		  )
 		: new ConfigFileLastSyncInfoStore('./last-sync-info.json');
