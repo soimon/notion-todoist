@@ -3,7 +3,7 @@ import {ApiComment} from '@lib/todoist';
 import {log} from '@lib/utils/dev';
 import {Integrations} from './integrations';
 import {MutationQueues} from './mutating';
-import {NoteSchema, NotionMutationQueue} from './mutating/notion';
+import {NoteSchema} from './mutating/notion';
 import {extractSyncStamp} from './syncstamp';
 
 export type ConfigProps = {
@@ -19,16 +19,25 @@ export type ConfigProps = {
 // - Mark comments as synced (can't give a reaction by API)
 
 export function createNoteSyncer(props: ConfigProps) {
-	async function prepare({todoist}: Integrations) {
+	async function prepare(
+		{todoist}: Integrations,
+		notionIdByTodoistId: Map<string, string>
+	) {
 		return {
 			comments: todoist.getComments(),
+			notionIdByTodoistId,
 		};
 	}
 	type Preparation = Awaited<ReturnType<typeof prepare>>;
 
-	function stage({comments}: Preparation, {notion}: MutationQueues) {
-		const dtos = comments.map(transformToDTO).filter(filterIrrelevant);
-		saveToNotion(dtos, notion);
+	function stage(
+		{comments, notionIdByTodoistId}: Preparation,
+		integrations: MutationQueues
+	) {
+		const dtos = comments
+			.map(transformToDTO(notionIdByTodoistId))
+			.filter(filterIrrelevant);
+		save(dtos, integrations);
 		log('comments', dtos);
 	}
 
@@ -36,42 +45,36 @@ export function createNoteSyncer(props: ConfigProps) {
 	// Mapping and filtering
 	//--------------------------------------------------------------------------------
 
-	const transformToDTO = (comment: ApiComment) => ({
-		id: comment.id,
-		content: comment.content,
-		parentId: comment.item_id,
-		date: new Date(comment.posted_at),
-		reactions: Object.keys(comment.reactions ?? {}),
-		file: comment.file_attachment,
-	});
-	type DTO = ReturnType<typeof transformToDTO>;
+	const transformToDTO =
+		(notionIdByTodoistId: Map<string, string>) => (comment: ApiComment) => ({
+			id: comment.id,
+			content: comment.content,
+			parentId: comment.item_id,
+			parentNotionId: notionIdByTodoistId.get(comment.item_id),
+			date: new Date(comment.posted_at),
+			reactions: Object.keys(comment.reactions ?? {}),
+			file: comment.file_attachment,
+		});
+	type DTO = ReturnType<ReturnType<typeof transformToDTO>>;
 
-	const filterIrrelevant = ({content, reactions, file, parentId}: DTO) => {
-		const notSyncedYet = reactions.length === 0;
+	const filterIrrelevant = ({content, file, parentNotionId}: DTO) => {
+		const hasRelevantParent = parentNotionId !== undefined;
 		const noPendingFile = !file || file.upload_state !== 'pending';
 		const isNotASyncStamp = extractSyncStamp(content) === undefined;
-		return (
-			notSyncedYet &&
-			noPendingFile &&
-			isNotASyncStamp &&
-			parentId === '8115125120'
-		);
+		return hasRelevantParent && noPendingFile && isNotASyncStamp;
 	};
 
 	//--------------------------------------------------------------------------------
 	// Store in Notion
 	//--------------------------------------------------------------------------------
 
-	function saveToNotion(dtos: DTO[], notion: NotionMutationQueue) {
+	function save(dtos: DTO[], {notion, todoist}: MutationQueues) {
 		dtos.forEach(dto => {
+			if (!dto.parentNotionId) return;
 			const firstLine = dto.content.trim().split('\n').shift();
-			notion.createNote('', {
-				title: firstLine ? firstLine : dto.file?.file_name ?? '',
-				content: dto.content,
-				date: dto.date,
-				fileName: dto.file?.file_name,
-				filePath: dto.file?.file_url,
-			});
+			const title = firstLine ? firstLine : dto.file?.file_name ?? '';
+			notion.appendTaskContent(dto.parentNotionId, dto.date, dto.content);
+			todoist.deleteComment(dto.id);
 		});
 	}
 

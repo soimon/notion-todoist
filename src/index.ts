@@ -5,6 +5,7 @@ import {isNotionClientError} from '@notionhq/client';
 import {connectIntegrations} from '@project/integrations';
 import {NoteSchema, ProjectSchema} from '@project/mutating/notion';
 import {createLabelSyncer} from '@project/sync-labels';
+import {createNoteSyncer} from '@project/sync-notes';
 import {createProjectSyncer} from '@project/sync-projects';
 import {createTaskSyncer} from '@project/sync-tasks';
 import {config as configDotEnv} from 'dotenv';
@@ -82,9 +83,9 @@ const {prepare: prepareTasks, stage: stageTasks} = createTaskSyncer({
 	postponedSymbol: '⏸',
 });
 
-// const {prepare: prepareNotes, stage: stageNotes} = createNoteSyncer({
-// 	schema: noteSchema,
-// });
+const {prepare: prepareNotes, stage: stageNotes} = createNoteSyncer({
+	schema: noteSchema,
+});
 
 //--------------------------------------------------------------------------------
 // Main
@@ -123,9 +124,19 @@ async function main() {
 		'Preparing tasks...',
 		'📝'
 	);
-	await runLogged(
+	const {notionIdByTodoistId} = await runLogged(
 		() => stageTasks(tasksPreparation, mutationQueues),
 		'Diffing tasks...',
+		'📝'
+	);
+	const notesPreparation = await runLogged(
+		() => prepareNotes(integrations, notionIdByTodoistId),
+		'Preparing notes...',
+		'📝'
+	);
+	await runLogged(
+		() => stageNotes(notesPreparation, mutationQueues),
+		'Diffing notes...',
 		'📝'
 	);
 	await commit();

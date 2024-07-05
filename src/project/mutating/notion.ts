@@ -218,6 +218,20 @@ export class NotionMutationQueue {
 
 	// Notes
 
+	appendTaskContent(id: string, date: Date, content: string) {
+		this.taskCounters.attach++;
+		this.operations.push(notion =>
+			notion.blocks.children.append({
+				block_id: id,
+				children: [
+					{divider: {}},
+					{heading_3: {rich_text: [createDateMention(date)]}},
+					...(markdownToBlocks(content) as any),
+				],
+			})
+		);
+	}
+
 	createNote(
 		project: string,
 		data: {
@@ -311,13 +325,13 @@ function formatTitle(text: string) {
 	} else return [{text: {content: text}}];
 }
 
-const createDateMention = (date?: Date) =>
+const createDateMention = (date?: Date, withTime = false) =>
 	date
 		? {
 				type: 'mention',
 				mention: {
 					date: {
-						start: makeIsoScheduledString(date, false),
+						start: makeIsoScheduledString(date, withTime),
 					},
 				},
 		  }

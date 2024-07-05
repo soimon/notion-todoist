@@ -1,10 +1,10 @@
-import {AddTaskArgs} from '@doist/todoist-api-typescript';
-import {generateLink} from '@lib/notion';
-import {Color, TodoistSyncApi} from '@lib/todoist';
-import {runLogged} from '@lib/utils/dev';
-import {makeIsoScheduledString} from '@lib/utils/time';
-import {generateContentHash, stampToLink} from '@project/syncstamp';
-import {RequireAtLeastOne} from 'type-fest';
+import { AddTaskArgs } from '@doist/todoist-api-typescript';
+import { generateLink } from '@lib/notion';
+import { Color, TodoistSyncApi } from '@lib/todoist';
+import { runLogged } from '@lib/utils/dev';
+import { makeIsoScheduledString } from '@lib/utils/time';
+import { generateContentHash, stampToLink } from '@project/syncstamp';
+import { RequireAtLeastOne } from 'type-fest';
 
 export class TodoistMutationQueue {
 	private logs: string[] = [];
@@ -14,6 +14,9 @@ export class TodoistMutationQueue {
 		move: 0,
 		delete: 0,
 		pair: 0,
+	};
+	private commentCounters = {
+		delete: 0,
 	};
 	constructor(private readonly client: TodoistSyncApi) {}
 
@@ -35,7 +38,8 @@ export class TodoistMutationQueue {
 	private get operationsCount() {
 		return (
 			this.logs.length +
-			Object.values(this.taskCounters).reduce((a, b) => a + b, 0)
+			Object.values(this.taskCounters).reduce((a, b) => a + b, 0) + 
+			Object.values(this.commentCounters).reduce((a, b) => a + b, 0)
 		);
 	}
 
@@ -52,11 +56,14 @@ export class TodoistMutationQueue {
 			console.log(
 				`Pair ${this.taskCounters.pair} tasks between Notion and Todoist`
 			);
+		if (this.commentCounters.delete > 0)
+			console.log(`Delete ${this.commentCounters.delete} comments from Todoist`);
 		this.taskCounters.create =
 			this.taskCounters.update =
 			this.taskCounters.move =
 			this.taskCounters.delete =
 			this.taskCounters.pair =
+			this.commentCounters.delete =
 				0;
 		this.logs = [];
 	}
@@ -178,6 +185,13 @@ export class TodoistMutationQueue {
 				taskId: pair.todoistId,
 			});
 		}
+	}
+
+	// Comments
+
+	deleteComment(id: string) {
+		this.client.deleteComment(id);
+		this.commentCounters.delete++;
 	}
 }
 

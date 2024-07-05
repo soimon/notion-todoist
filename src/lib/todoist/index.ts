@@ -279,6 +279,11 @@ export class TodoistSyncApi {
 			content,
 		});
 	}
+
+	deleteComment(id: string) {
+		return this.addCommand('note_delete', {id});
+	}
+
 	addLabel(label: AddLabelArgs): TemporaryId {
 		return this.addCommand('label_add', {
 			name: label.name,

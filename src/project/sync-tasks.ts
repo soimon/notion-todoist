@@ -136,6 +136,8 @@ export function createTaskSyncer(props: ConfigProps) {
 				{todoistTaskId: task.id, todoistHash: task.contentHash}
 			);
 		});
+
+		return {notionIdByTodoistId};
 	}
 
 	//--------------------------------------------------------------------------------
