@@ -228,59 +228,28 @@ export class NotionMutationQueue {
 		content: string;
 	}) {
 		this.taskCounters.attach++;
-		this.operations.push(
-			notion =>
-				notion.blocks.children.append({
-					block_id: id,
-					children: [
-						{divider: {}},
-						{heading_3: {rich_text: [createDateMention(date)]}},
-						...(markdownToBlocks(content) as any),
-					],
-				}),
-			notion =>
-				notion.pages.update({
-					page_id: id,
-					properties: {
-						[this.projectSchema.fields.reviewState]: {
-							select: {id: this.projectSchema.idOfNewNotesOption},
-						},
-					},
-				})
+		this.operations.push(notion =>
+			notion.blocks.children.append({
+				block_id: id,
+				children: [
+					{divider: {}},
+					{heading_3: {rich_text: [createDateMention(date)]}},
+					...(markdownToBlocks(content) as any),
+				],
+			})
 		);
 	}
 
-	createNote(
-		project: string,
-		data: {
-			title: string;
-			content: string;
-			date: Date;
-			fileName?: string;
-			filePath?: string;
-		}
-	) {
-		this.taskCounters.attach++;
+	flagTaskAsReviewable(id: string) {
+		this.taskCounters.update++;
 		this.operations.push(notion =>
-			notion.pages.create({
-				parent: {database_id: this.noteSchema.database},
+			notion.pages.update({
+				page_id: id,
 				properties: {
-					title: {title: [{text: {content: data.title}}]},
-					[this.noteSchema.fields.date]: {
-						date: {start: makeIsoScheduledString(data.date, true)},
+					[this.projectSchema.fields.reviewState]: {
+						select: {id: this.projectSchema.idOfNewNotesOption},
 					},
-					...(data.fileName && data.filePath
-						? {
-								[this.noteSchema.fields.files]: {
-									files: [
-										{external: {url: data.filePath}, name: data.fileName},
-									],
-								},
-						  }
-						: {}),
 				},
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				children: markdownToBlocks(data.content) as any,
 			})
 		);
 	}

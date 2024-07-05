@@ -1,6 +1,6 @@
-import {defineSchema} from '@lib/notion';
 import {ApiComment} from '@lib/todoist';
-import {log} from '@lib/utils/dev';
+import {log, runLogged} from '@lib/utils/dev';
+import {Uploader} from './files/uploader';
 import {Integrations} from './integrations';
 import {MutationQueues} from './mutating';
 import {NoteSchema} from './mutating/notion';
@@ -15,30 +15,27 @@ export type ConfigProps = {
 // upload files to Notion via the API. Parking it for now.
 //
 
-// TODO:
-// - Mark pages
-// - Upload files
-
 export function createNoteSyncer(props: ConfigProps) {
 	async function prepare(
-		{todoist}: Integrations,
+		{todoist, uploader}: Integrations,
 		notionIdByTodoistId: Map<string, string>
 	) {
 		return {
 			comments: todoist.getComments(),
+			uploader,
 			notionIdByTodoistId,
 		};
 	}
 	type Preparation = Awaited<ReturnType<typeof prepare>>;
 
-	function stage(
-		{comments, notionIdByTodoistId}: Preparation,
+	async function stage(
+		{comments, notionIdByTodoistId, uploader}: Preparation,
 		integrations: MutationQueues
 	) {
 		const dtos = comments
 			.map(transformToDTO(notionIdByTodoistId))
 			.filter(filterIrrelevant);
-		save(dtos, integrations);
+		await save(dtos, integrations, uploader);
 		log('comments', dtos);
 	}
 
@@ -60,38 +57,53 @@ export function createNoteSyncer(props: ConfigProps) {
 
 	const filterIrrelevant = ({content, file, parentNotionId}: DTO) => {
 		const hasRelevantParent = parentNotionId !== undefined;
-		const noPendingFile = !file || file.upload_state !== 'pending';
 		const isNotASyncStamp = extractSyncStamp(content) === undefined;
-		return hasRelevantParent && noPendingFile && isNotASyncStamp;
+		return hasRelevantParent && isNotASyncStamp;
 	};
 
 	//--------------------------------------------------------------------------------
 	// Store in Notion
 	//--------------------------------------------------------------------------------
 
-	function save(dtos: DTO[], {notion, todoist}: MutationQueues) {
-		dtos.forEach(dto => {
-			if (!dto.parentNotionId) return;
+	async function save(
+		dtos: DTO[],
+		{notion, todoist}: MutationQueues,
+		uploader: Uploader
+	) {
+		for (const dto of dtos) {
+			if (!dto.parentNotionId) continue;
+			notion.flagTaskAsReviewable(dto.parentNotionId);
+
+			// Try uploading
+
+			let url: string | undefined;
+			if (dto.file) {
+				const file = dto.file;
+				if (!uploader.supportsFile(file)) continue;
+				url = await runLogged(
+					() => uploader.upload(file),
+					`Uploading ${file.file_name}...`,
+					'📷'
+				);
+				if (!url) {
+					console.log('❌ Upload failed');
+					continue;
+				}
+			}
+
+			// Append to Notion
+
 			const firstLine = dto.content.trim().split('\n').shift();
 			const title = firstLine ? firstLine : dto.file?.file_name ?? '';
 			notion.appendTaskContent({
 				id: dto.parentNotionId,
 				date: dto.date,
-				content: dto.content,
+				content:
+					dto.content + (url ? `\n\n![${dto.file?.file_name}](${url})` : ''),
 			});
 			todoist.deleteComment(dto.id);
-		});
+		}
 	}
-
-	//--------------------------------------------------------------------------------
-	// Types
-	//--------------------------------------------------------------------------------
-
-	const schema = defineSchema({
-		Name: {type: 'title', id: 'title'},
-		Files: {type: 'files', id: props.schema.fields.files},
-		Date: {type: 'date', id: props.schema.fields.date},
-	});
 
 	//--------------------------------------------------------------------------------
 	// Export the function

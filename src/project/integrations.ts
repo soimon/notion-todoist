@@ -1,6 +1,7 @@
 import {TodoistSyncApi} from '@lib/todoist';
 import {runLogged} from '@lib/utils/dev';
 import {Client as NotionClient} from '@notionhq/client';
+import {Uploader} from './files/uploader';
 import {createMutationQueues, MutationQueues} from './mutating';
 import {NoteSchema, ProjectSchema} from './mutating/notion';
 import {ConfigFileLastSyncInfoStore} from './persistence/configfile';
@@ -21,6 +22,7 @@ export async function connectIntegrations(
 	commit: () => Promise<void>;
 }> {
 	const {lastSyncInfo, lastSyncInfoStore} = await getLastSyncInformation(isDev);
+	const uploader = initUploader();
 	const notion = initNotion();
 	const [todoist, incrementalTodoist] = await runLogged(
 		async () => [
@@ -40,7 +42,7 @@ export async function connectIntegrations(
 
 	return {
 		mutationQueues,
-		integrations: {todoist, incrementalTodoist, notion},
+		integrations: {todoist, incrementalTodoist, notion, uploader},
 		async commit() {
 			const pairs = await mutationQueues.notion.commit();
 			mutationQueues.todoist.syncTaskPairs(pairs);
@@ -61,6 +63,7 @@ export type Integrations = {
 	todoist: TodoistSyncApi;
 	incrementalTodoist: TodoistSyncApi;
 	notion: NotionClient;
+	uploader: Uploader;
 };
 
 const getLastSyncInformation = async (isDev = false) => {
@@ -103,4 +106,8 @@ async function initIncrementalTodoist(lastSyncInfo: LastSyncInfo) {
 	if (lastSyncInfo !== 'no-last-sync')
 		await todoist.loadDiff(lastSyncInfo.token, ['items']);
 	return todoist;
+}
+
+function initUploader() {
+	return new Uploader();
 }

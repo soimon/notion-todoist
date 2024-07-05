@@ -1,6 +1,6 @@
 {
 	"name": "notion-todoist",
-	"version": "2.3.0",
+	"version": "2.4.0",
 	"description": "",
 	"main": "build/src/index.js",
 	"types": "build/src/index.d.ts",
@@ -22,6 +22,7 @@
 		"@types/node": "20.8.2",
 		"@types/object.groupby": "^1.0.3",
 		"@types/uuid": "^9.0.7",
+		"@types/whatwg-url": "^11.0.5",
 		"gts": "^5.2.0",
 		"nodemon": "^3.0.2",
 		"tsc-watch": "^6.0.4",
@@ -35,6 +36,7 @@
 		"@vighnesh153/github-gist": "^0.4.4",
 		"axios": "^1.6.2",
 		"dotenv": "^16.3.1",
+		"imgur": "^2.4.2",
 		"md5": "^2.3.0",
 		"module-alias": "^2.2.3",
 		"node-fetch": "^2.7.0",

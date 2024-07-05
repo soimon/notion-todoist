@@ -10,6 +10,8 @@ declare namespace NodeJS {
 		TODOIST_PROJECT_AREAS: string;
 		TODOIST_PROJECT_RESOURCES: string;
 
+		IMGUR_TOKEN: string;
+
 		DEV: string | undefined;
 		IS_GITHUB_ACTION: string | undefined;
 
