@@ -519,7 +519,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		People: {type: 'formula', id: props.schema.fields.people},
 		Verb: {type: 'select', id: props.schema.fields.verb},
 		Waiting: {type: 'rich_text', id: props.schema.fields.waiting},
-		Archived: {type: 'select', id: props.schema.fields.archived},
+		Archived: {type: 'select', id: props.schema.fields.reviewState},
 	});
 
 	//--------------------------------------------------------------------------------

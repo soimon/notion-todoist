@@ -193,7 +193,7 @@ export class NotionMutationQueue {
 			notion.pages.update({
 				page_id: id,
 				properties: {
-					[this.projectSchema.fields.archived]: {
+					[this.projectSchema.fields.reviewState]: {
 						type: 'select',
 						select: {id: this.projectSchema.idOfArchivedOption},
 					},
@@ -218,17 +218,35 @@ export class NotionMutationQueue {
 
 	// Notes
 
-	appendTaskContent(id: string, date: Date, content: string) {
+	appendTaskContent({
+		id,
+		date,
+		content,
+	}: {
+		id: string;
+		date: Date;
+		content: string;
+	}) {
 		this.taskCounters.attach++;
-		this.operations.push(notion =>
-			notion.blocks.children.append({
-				block_id: id,
-				children: [
-					{divider: {}},
-					{heading_3: {rich_text: [createDateMention(date)]}},
-					...(markdownToBlocks(content) as any),
-				],
-			})
+		this.operations.push(
+			notion =>
+				notion.blocks.children.append({
+					block_id: id,
+					children: [
+						{divider: {}},
+						{heading_3: {rich_text: [createDateMention(date)]}},
+						...(markdownToBlocks(content) as any),
+					],
+				}),
+			notion =>
+				notion.pages.update({
+					page_id: id,
+					properties: {
+						[this.projectSchema.fields.reviewState]: {
+							select: {id: this.projectSchema.idOfNewNotesOption},
+						},
+					},
+				})
 		);
 	}
 
@@ -349,10 +367,11 @@ export type ProjectSchema = {
 		people: string;
 		verb: string;
 		waiting: string;
-		archived: string;
+		reviewState: string;
 		todoist: string;
 	}>;
 	idOfArchivedOption: string;
+	idOfNewNotesOption: string;
 	filterValueOfActive: string;
 };
 

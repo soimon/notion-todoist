@@ -16,7 +16,8 @@ export type ConfigProps = {
 //
 
 // TODO:
-// - Mark comments as synced (can't give a reaction by API)
+// - Mark pages
+// - Upload files
 
 export function createNoteSyncer(props: ConfigProps) {
 	async function prepare(
@@ -73,7 +74,11 @@ export function createNoteSyncer(props: ConfigProps) {
 			if (!dto.parentNotionId) return;
 			const firstLine = dto.content.trim().split('\n').shift();
 			const title = firstLine ? firstLine : dto.file?.file_name ?? '';
-			notion.appendTaskContent(dto.parentNotionId, dto.date, dto.content);
+			notion.appendTaskContent({
+				id: dto.parentNotionId,
+				date: dto.date,
+				content: dto.content,
+			});
 			todoist.deleteComment(dto.id);
 		});
 	}
