@@ -117,20 +117,21 @@ export class NotionMutationQueue {
 	updateTaskFlags(id: string, flags: {isScheduled?: boolean}) {
 		this.taskCounters.update++;
 
-		this.operations.push(async notion => {
-			notion.pages.update({
-				page_id: id,
-				properties: {
-					// Is scheduled
-					...{
-						[this.projectSchema.fields.isScheduled]: {
-							type: 'checkbox',
-							checkbox: flags.isScheduled ?? false,
+		this.operations.push(
+			async notion =>
+				await notion.pages.update({
+					page_id: id,
+					properties: {
+						// Is scheduled
+						...{
+							[this.projectSchema.fields.isScheduled]: {
+								type: 'checkbox',
+								checkbox: flags.isScheduled ?? false,
+							},
 						},
 					},
-				},
-			});
-		});
+				})
+		);
 	}
 
 	updateTask(
@@ -153,66 +154,69 @@ export class NotionMutationQueue {
 			original.Waiting?.rich_text
 		);
 
-		this.operations.push(async notion => {
-			notion.pages.update({
-				page_id: id,
-				properties: {
-					title: {title: formatTitle(data.name)},
+		this.operations.push(
+			async notion =>
+				await notion.pages.update({
+					page_id: id,
+					properties: {
+						title: {title: formatTitle(data.name)},
 
-					// Verb
-					...{
-						[this.projectSchema.fields.verb]: {
-							select: data.verb ? {name: data.verb} : null,
+						// Verb
+						...{
+							[this.projectSchema.fields.verb]: {
+								select: data.verb ? {name: data.verb} : null,
+							},
 						},
-					},
 
-					// Places
-					[this.projectSchema.fields.place]: {
-						multi_select: data.places.map(name => ({name})),
-					},
-
-					// Waiting for date
-					...(waiting && {
-						[this.projectSchema.fields.waiting]: {
-							rich_text: waiting,
+						// Places
+						[this.projectSchema.fields.place]: {
+							multi_select: data.places.map(name => ({name})),
 						},
-					}),
-				},
-			});
-			this.syncQueue.push({
-				notionId: id,
-				hash: pair.todoistHash,
-				commentId: pair.todoistCommentId,
-			});
+
+						// Waiting for date
+						...(waiting && {
+							[this.projectSchema.fields.waiting]: {
+								rich_text: waiting,
+							},
+						}),
+					},
+				})
+		);
+		this.syncQueue.push({
+			notionId: id,
+			hash: pair.todoistHash,
+			commentId: pair.todoistCommentId,
 		});
 	}
 
 	completeTask(id: string) {
 		this.taskCounters.complete++;
-		this.operations.push(notion =>
-			notion.pages.update({
-				page_id: id,
-				properties: {
-					[this.projectSchema.fields.reviewState]: {
-						type: 'select',
-						select: {id: this.projectSchema.idOfArchivedOption},
+		this.operations.push(
+			async notion =>
+				await notion.pages.update({
+					page_id: id,
+					properties: {
+						[this.projectSchema.fields.reviewState]: {
+							type: 'select',
+							select: {id: this.projectSchema.idOfArchivedOption},
+						},
 					},
-				},
-			})
+				})
 		);
 	}
 
 	fixTaskArea(id: string, areas: string[]) {
 		this.taskCounters.fix++;
-		this.operations.push(notion =>
-			notion.pages.update({
-				page_id: id,
-				properties: {
-					[this.projectSchema.fields.areas]: {
-						relation: areas.map(id => ({id})),
+		this.operations.push(
+			async notion =>
+				await notion.pages.update({
+					page_id: id,
+					properties: {
+						[this.projectSchema.fields.areas]: {
+							relation: areas.map(id => ({id})),
+						},
 					},
-				},
-			})
+				})
 		);
 	}
 
@@ -228,29 +232,32 @@ export class NotionMutationQueue {
 		content: string;
 	}) {
 		this.taskCounters.attach++;
-		this.operations.push(notion =>
-			notion.blocks.children.append({
-				block_id: id,
-				children: [
-					{divider: {}},
-					{heading_3: {rich_text: [createDateMention(date)]}},
-					...(markdownToBlocks(content) as any),
-				],
-			})
+		this.operations.push(
+			async notion =>
+				await notion.blocks.children.append({
+					block_id: id,
+					children: [
+						{divider: {}},
+						{heading_3: {rich_text: [createDateMention(date)]}},
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+						...(markdownToBlocks(content) as any),
+					],
+				})
 		);
 	}
 
 	flagTaskAsReviewable(id: string) {
 		this.taskCounters.update++;
-		this.operations.push(notion =>
-			notion.pages.update({
-				page_id: id,
-				properties: {
-					[this.projectSchema.fields.reviewState]: {
-						select: {id: this.projectSchema.idOfNewNotesOption},
+		this.operations.push(
+			async notion =>
+				await notion.pages.update({
+					page_id: id,
+					properties: {
+						[this.projectSchema.fields.reviewState]: {
+							select: {id: this.projectSchema.idOfNewNotesOption},
+						},
 					},
-				},
-			})
+				})
 		);
 	}
 }
