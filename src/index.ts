@@ -155,6 +155,7 @@ console.clear();
 			if (
 				[
 					'notionhq_client_request_timeout',
+					'notionhq_client_response_error',
 					'invalid-json',
 					'service_unavailable',
 				].includes(error.code)
