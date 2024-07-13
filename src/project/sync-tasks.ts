@@ -110,6 +110,9 @@ export function createTaskSyncer(props: ConfigProps) {
 		);
 		orphanTasks.forEach(([, task]) => todoist.deleteTask(task.id));
 
+		// Delete duplicated tasks (happens sometimes when the API's produce garbage)
+		todoistTasks.duplicates.forEach(id => todoist.deleteTask(id));
+
 		// Add tasks that are added in Todoist
 
 		const newlyAddedTasks = todoistTasks.unsynced.filter(t =>
@@ -151,6 +154,7 @@ export function createTaskSyncer(props: ConfigProps) {
 	};
 	type TodoistSyncData = {
 		synced: Map<string, SyncedTask>;
+		duplicates: string[];
 		unsynced: SyncedTask[];
 	};
 
@@ -158,6 +162,9 @@ export function createTaskSyncer(props: ConfigProps) {
 		tasks: ApiTask[],
 		comments: ApiComment[]
 	): TodoistSyncData {
+		const synced = new Map<string, SyncedTask>();
+		const duplicates: string[] = [];
+
 		const withSyncId = tasks.map<[string | undefined, SyncedTask]>(task => {
 			const contentHash = generateContentHash({
 				...task,
@@ -175,13 +182,31 @@ export function createTaskSyncer(props: ConfigProps) {
 			return [undefined, {...task, contentHash}];
 		});
 
+		withSyncId
+			.filter((v): v is [string, SyncedTask] => v[0] !== undefined)
+			.forEach(([id, task]) => {
+				const existing = synced.get(id);
+				if (existing) {
+					const {keep, toss} = chooseBetweenDuplicateSyncs(task, existing);
+					synced.set(id, keep);
+					duplicates.push(toss.id);
+				} else synced.set(id, task);
+			});
+
 		return {
-			synced: new Map(
-				withSyncId.filter((v): v is [string, SyncedTask] => v[0] !== undefined)
-			),
+			synced,
+			duplicates,
 			unsynced: withSyncId.filter(([id]) => !id).map(([, task]) => task),
 		};
 	}
+
+	const chooseBetweenDuplicateSyncs = (
+		a: SyncedTask,
+		b: SyncedTask
+	): {keep: SyncedTask; toss: SyncedTask} => {
+		if (new Date(a.added_at) > new Date(b.added_at)) return {keep: a, toss: b};
+		else return {keep: b, toss: a};
+	};
 
 	const getCompletedTasks = (incrementalTasks: ApiTask[]) =>
 		incrementalTasks.filter(t => t.completed_at);
