@@ -110,6 +110,12 @@ async function main() {
 		'📂'
 	);
 
+	if (
+		labelsPreparation.labels.length + projectsPreparation.projects.length ===
+		0
+	)
+		return showServiceError();
+
 	const labels = await runLogged(
 		() => stageLabels(labelsPreparation, mutationQueues),
 		'Diffing labels...',
