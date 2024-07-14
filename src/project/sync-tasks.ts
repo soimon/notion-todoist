@@ -445,13 +445,14 @@ export function createTaskSyncer(props: ConfigProps) {
 			else if (task.name) actions.push(SyncAction.Create);
 		} else {
 			const td = task.todoistData;
-			const isAlteredInTodoist =
-				(td.contentHash !== td.syncStamp?.hash || td.due?.is_recurring) &&
-				!task.isPostponed;
-			if (!areTasksEqual(task, td))
+			if (!areTasksEqual(task, td)) {
+				const isAlteredInTodoist =
+					(td.contentHash !== td.syncStamp?.hash || td.due?.is_recurring) &&
+					!task.isPostponed;
 				actions.push(
 					isAlteredInTodoist ? SyncAction.UpdateInNotion : SyncAction.Update
 				);
+			}
 			if (isDateChanged(task, td)) actions.push(SyncAction.ReflagInNotion);
 			if (isSomewhereElse(td, parentInfo)) actions.push(SyncAction.Move);
 		}
