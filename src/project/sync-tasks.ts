@@ -204,7 +204,12 @@ export function createTaskSyncer(props: ConfigProps) {
 		a: SyncedTask,
 		b: SyncedTask
 	): {keep: SyncedTask; toss: SyncedTask} => {
-		if (new Date(a.added_at) > new Date(b.added_at)) return {keep: a, toss: b};
+		if (a.due?.is_recurring) return {keep: a, toss: b};
+		else if (b.due?.is_recurring) return {keep: b, toss: a};
+		else if (a.due && !b.due) return {keep: a, toss: b};
+		else if (b.due && !a.due) return {keep: b, toss: a};
+		else if (new Date(a.added_at) > new Date(b.added_at))
+			return {keep: a, toss: b};
 		else return {keep: b, toss: a};
 	};
 
