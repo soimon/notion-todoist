@@ -4,6 +4,8 @@ import {
 } from '@project/persistence/lastsyncinfo';
 import {GithubGist} from '@vighnesh153/github-gist';
 
+const RETRIES = 3;
+
 export class GistLastSyncInfoStore implements LastSyncInfoStore {
 	constructor(
 		private gistId: string,
@@ -49,6 +51,16 @@ export class GistLastSyncInfoStore implements LastSyncInfoStore {
 		const config: LastSyncInfo = {token, date};
 		const file = await this.getFile();
 		file.content = JSON.stringify(config);
-		await file.save();
+
+		const tries = RETRIES;
+		for (let i = 0; i < tries; i++) {
+			try {
+				await file.save();
+				return;
+			} catch (e) {
+				if (i === tries - 1) throw e;
+				else await new Promise(resolve => setTimeout(resolve, 5000));
+			}
+		}
 	}
 }
