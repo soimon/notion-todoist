@@ -139,12 +139,12 @@ async function main() {
 	const notesPreparation = await runLogged(
 		() => prepareNotes(integrations, notionIdByTodoistId),
 		'Preparing notes...',
-		'📝'
+		'💬'
 	);
 	await runLogged(
 		() => stageNotes(notesPreparation, mutationQueues),
 		'Diffing notes...',
-		'📝'
+		'💬'
 	);
 	await commit();
 }
