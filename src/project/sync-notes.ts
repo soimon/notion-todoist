@@ -52,7 +52,7 @@ export function createNoteSyncer(props: ConfigProps) {
 			date: new Date(comment.posted_at),
 			reactions: Object.keys(comment.reactions ?? {}),
 			file:
-				comment.file_attachment?.resource_type !== 'website'
+				comment.file_attachment?.resource_type?.toLowerCase() !== 'website'
 					? comment.file_attachment
 					: undefined,
 		});
