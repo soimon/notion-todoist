@@ -92,7 +92,12 @@ export class TodoistSyncApi {
 			const json = JSON.parse(text);
 			return json;
 		} catch (e) {
-			if (text.includes('Timeout') || text.length === 0 || r.status === 502) {
+			if (
+				text.includes('Scheduled maintenance') ||
+				text.includes('Timeout') ||
+				text.length === 0 ||
+				r.status === 502
+			) {
 				console.log(
 					'Todoist seems to be down. As this happens often, I will gracefully exit instead of spamming your mailbox with error messages.'
 				);
