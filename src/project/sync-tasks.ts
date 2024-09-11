@@ -277,6 +277,7 @@ export function createTaskSyncer(props: ConfigProps) {
 			verb: properties.Verb?.select?.name,
 			waitingForDate,
 			isPostponed: checkPostponed(properties, waitingForDate),
+			isScheduled: properties['@Scheduled']?.checkbox ?? false,
 			children: [],
 			todoistData,
 			notionData: properties,
@@ -395,14 +396,16 @@ export function createTaskSyncer(props: ConfigProps) {
 					task.notionData,
 					{todoistCommentId: td.syncCommentId, todoistHash: td.contentHash}
 				);
-			if (action.includes(SyncAction.ReflagInNotion))
-				notion.updateTaskFlags(task.id, {
-					isScheduled: !!(action.includes(SyncAction.Update)
-						? task.waitingForDate
-						: td?.due?.date),
-				});
 			if (action.includes(SyncAction.Move)) todoist.moveTask(id, parentInfo);
 		}
+
+		if (action.includes(SyncAction.ReflagInNotion))
+			notion.updateTaskFlags(task.id, {
+				isScheduled: !!(action.includes(SyncAction.Update) ||
+				action.includes(SyncAction.Create)
+					? task.waitingForDate
+					: task.todoistData?.due?.date),
+			});
 
 		// Recurse
 
@@ -458,9 +461,17 @@ export function createTaskSyncer(props: ConfigProps) {
 					isAlteredInTodoist ? SyncAction.UpdateInNotion : SyncAction.Update
 				);
 			}
-			if (isDateChanged(task, td)) actions.push(SyncAction.ReflagInNotion);
 			if (isSomewhereElse(td, parentInfo)) actions.push(SyncAction.Move);
 		}
+
+		// Reflagging
+
+		const shouldBeScheduled = !!(actions.includes(SyncAction.Update) ||
+		actions.includes(SyncAction.Create)
+			? task.waitingForDate
+			: task.todoistData?.due?.date);
+		if (shouldBeScheduled !== task.isScheduled)
+			actions.push(SyncAction.ReflagInNotion);
 		return actions;
 	};
 
@@ -521,6 +532,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		people: string[];
 		places: string[];
 		isPostponed?: boolean;
+		isScheduled?: boolean;
 		waitingForDate?: Date;
 		children: TaskDTO[];
 		todoistData?: SyncedTask;
@@ -541,6 +553,10 @@ export function createTaskSyncer(props: ConfigProps) {
 		'@Postponed': {
 			type: 'formula',
 			id: props.schema.fields.isPostponed,
+		},
+		'@Scheduled': {
+			type: 'checkbox',
+			id: props.schema.fields.isScheduled,
 		},
 		Name: {type: 'title', id: 'title'},
 		Todoist: {type: 'url', id: props.schema.fields.todoist},
