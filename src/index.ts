@@ -31,6 +31,7 @@ const projectSchema: ProjectSchema = {
 		verb: '%7BWG%3C',
 		waiting: 'yVIB',
 		reviewState: 'OQcZ',
+		goalArea: 'H~B%7D',
 		todoist: '%3Ff%5Em',
 	},
 	filterValueOfActive: 'Actief',

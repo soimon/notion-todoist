@@ -266,6 +266,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		const id = normalizeId(_id);
 		const todoistData = tasks.synced.get(id);
 		const people = properties.People?.formula;
+		const goalArea = properties['@Goalarea']?.formula;
 		const waitingForDate = extractDateFromWaitingText(properties.Waiting);
 		return {
 			id,
@@ -279,6 +280,8 @@ export function createTaskSyncer(props: ConfigProps) {
 			waitingForDate,
 			isPostponed: checkPostponed(properties, waitingForDate),
 			isScheduled: properties['@Scheduled']?.checkbox ?? false,
+			goalArea:
+				goalArea?.type === 'string' ? goalArea.string ?? undefined : undefined,
 			children: [],
 			todoistData,
 			notionData: properties,
@@ -349,8 +352,20 @@ export function createTaskSyncer(props: ConfigProps) {
 			parentInfo.areas.sort().join() !== task.areas.sort().join();
 		const goalsDiffer =
 			parentInfo.goals.sort().join() !== task.goals.sort().join();
-		if (areasDiffer || goalsDiffer)
-			notion.fixTaskAreaAndGoal(task.id, parentInfo.areas, parentInfo.goals);
+		const areaIsEmptyButHasGoalWithArea =
+			!goalsDiffer &&
+			!areasDiffer &&
+			parentInfo.areas.length === 1 &&
+			parentInfo.areas[0] === '' &&
+			task.goalArea;
+		if (areasDiffer || goalsDiffer || areaIsEmptyButHasGoalWithArea)
+			notion.fixTaskAreaAndGoal(
+				task.id,
+				areaIsEmptyButHasGoalWithArea && task.goalArea
+					? [task.goalArea]
+					: parentInfo.areas,
+				parentInfo.goals
+			);
 
 		if (!id) {
 			// Create
@@ -549,6 +564,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		places: string[];
 		isPostponed?: boolean;
 		isScheduled?: boolean;
+		goalArea?: string;
 		waitingForDate?: Date;
 		children: TaskDTO[];
 		todoistData?: SyncedTask;
@@ -569,6 +585,10 @@ export function createTaskSyncer(props: ConfigProps) {
 		'@Postponed': {
 			type: 'formula',
 			id: props.schema.fields.isPostponed,
+		},
+		'@Goalarea': {
+			type: 'formula',
+			id: props.schema.fields.goalArea,
 		},
 		'@Scheduled': {
 			type: 'checkbox',

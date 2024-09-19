@@ -1,6 +1,6 @@
 {
 	"name": "notion-todoist",
-	"version": "2.5.6",
+	"version": "2.6.0",
 	"description": "",
 	"main": "build/src/index.js",
 	"types": "build/src/index.d.ts",

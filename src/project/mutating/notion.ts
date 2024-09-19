@@ -1,10 +1,10 @@
-import {extractIdFromLink, hasLinks} from '@lib/notion';
-import {runLogged} from '@lib/utils/dev';
-import {makeIsoScheduledString} from '@lib/utils/time';
-import {Client} from '@notionhq/client';
-import {RichTextItemResponse} from '@notionhq/client/build/src/api-endpoints';
-import {markdownToBlocks} from '@tryfabric/martian';
-import {SyncPair} from './todoist';
+import { extractIdFromLink, hasLinks } from '@lib/notion';
+import { runLogged } from '@lib/utils/dev';
+import { makeIsoScheduledString } from '@lib/utils/time';
+import { Client } from '@notionhq/client';
+import { RichTextItemResponse } from '@notionhq/client/build/src/api-endpoints';
+import { markdownToBlocks } from '@tryfabric/martian';
+import { SyncPair } from './todoist';
 
 export class NotionMutationQueue {
 	private operations: ((notion: Client) => Promise<unknown>)[] = [];
@@ -351,6 +351,7 @@ export type ProjectSchema = {
 		people: string;
 		verb: string;
 		waiting: string;
+		goalArea:string;
 		reviewState: string;
 		todoist: string;
 	}>;
