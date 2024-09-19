@@ -13,7 +13,7 @@ import {makeIsoScheduledString} from '@lib/utils/time';
 import {Client as NotionClient} from '@notionhq/client';
 import {Integrations} from './integrations';
 import {MutationQueues} from './mutating';
-import {ProjectSchema} from './mutating/notion';
+import {NO_AREA, ProjectSchema} from './mutating/notion';
 import {extractSyncStamp, generateContentHash, SyncStamp} from './syncstamp';
 
 export type ConfigProps = {
@@ -91,7 +91,6 @@ export function createTaskSyncer(props: ConfigProps) {
 		const completedTasks = getCompletedTasks(incrementalTasks);
 		for (const [areaId, tasks] of tree) {
 			const projectId = areaProjectsMap.get(areaId);
-			if (!projectId) continue;
 			for (const task of tasks)
 				syncTaskTree(
 					task,
@@ -310,11 +309,12 @@ export function createTaskSyncer(props: ConfigProps) {
 		const root = new Map<string, TaskDTO[]>();
 		projects.forEach(project => {
 			const numParents = project.parents.length;
-			if (numParents === 0)
-				project.areas.forEach(area =>
+			if (numParents === 0) {
+				const areasOrEmpty = project.areas.length ? project.areas : [NO_AREA];
+				areasOrEmpty.forEach(area =>
 					root.set(area, [...(root.get(area) || []), project])
 				);
-			else
+			} else
 				project.parents.forEach(
 					parent => projects.get(parent)?.children.push(project)
 				);
@@ -512,11 +512,16 @@ export function createTaskSyncer(props: ConfigProps) {
 		td: Pick<ApiTask, 'parent_id' | 'project_id'>,
 		parentInfo: Pick<AddTaskArgs, 'parentId' | 'projectId' | 'sectionId'>
 	) => {
+		const todoistProjectId =
+			td.project_id === process.env.TODOIST_PROJECT_INBOX
+				? undefined
+				: td.project_id;
 		return (
 			// eslint-disable-next-line eqeqeq
 			td.parent_id != parentInfo.parentId ||
-			// eslint-disable-next-line eqeqeq
-			(!td.parent_id && td.project_id != parentInfo.projectId)
+			(!td.parent_id &&
+				// eslint-disable-next-line eqeqeq
+				todoistProjectId != parentInfo.projectId)
 		);
 	};
 

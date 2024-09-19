@@ -9,6 +9,7 @@ declare namespace NodeJS {
 		TODOIST_TOKEN: string;
 		TODOIST_PROJECT_AREAS: string;
 		TODOIST_PROJECT_RESOURCES: string;
+		TODOIST_PROJECT_INBOX: string;
 
 		IMGUR_TOKEN: string;
 

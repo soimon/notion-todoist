@@ -1,10 +1,10 @@
-import { AddTaskArgs } from '@doist/todoist-api-typescript';
-import { generateLink } from '@lib/notion';
-import { Color, TodoistSyncApi } from '@lib/todoist';
-import { runLogged } from '@lib/utils/dev';
-import { makeIsoScheduledString } from '@lib/utils/time';
-import { generateContentHash, stampToLink } from '@project/syncstamp';
-import { RequireAtLeastOne } from 'type-fest';
+import {AddTaskArgs} from '@doist/todoist-api-typescript';
+import {generateLink} from '@lib/notion';
+import {Color, TodoistSyncApi} from '@lib/todoist';
+import {runLogged} from '@lib/utils/dev';
+import {makeIsoScheduledString} from '@lib/utils/time';
+import {generateContentHash, stampToLink} from '@project/syncstamp';
+import {RequireAtLeastOne} from 'type-fest';
 
 export class TodoistMutationQueue {
 	private logs: string[] = [];
@@ -38,7 +38,7 @@ export class TodoistMutationQueue {
 	private get operationsCount() {
 		return (
 			this.logs.length +
-			Object.values(this.taskCounters).reduce((a, b) => a + b, 0) + 
+			Object.values(this.taskCounters).reduce((a, b) => a + b, 0) +
 			Object.values(this.commentCounters).reduce((a, b) => a + b, 0)
 		);
 	}
@@ -57,7 +57,9 @@ export class TodoistMutationQueue {
 				`Pair ${this.taskCounters.pair} tasks between Notion and Todoist`
 			);
 		if (this.commentCounters.delete > 0)
-			console.log(`Delete ${this.commentCounters.delete} comments from Todoist`);
+			console.log(
+				`Delete ${this.commentCounters.delete} comments from Todoist`
+			);
 		this.taskCounters.create =
 			this.taskCounters.update =
 			this.taskCounters.move =
@@ -164,6 +166,12 @@ export class TodoistMutationQueue {
 		id: string,
 		parentInfo: Pick<AddTaskArgs, 'parentId' | 'projectId' | 'sectionId'>
 	) {
+		if (
+			parentInfo.parentId === undefined &&
+			parentInfo.projectId === undefined &&
+			parentInfo.sectionId === undefined
+		)
+			parentInfo.projectId = process.env.TODOIST_PROJECT_INBOX;
 		this.client.moveTask(id, parentInfo);
 		this.taskCounters.move++;
 	}

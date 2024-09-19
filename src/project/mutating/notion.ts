@@ -209,6 +209,7 @@ export class NotionMutationQueue {
 	}
 
 	fixTaskAreaAndGoal(id: string, areas: string[], goals: string[]) {
+		const areasIsEmpty = areas.length === 1 && areas[0] === NO_AREA;
 		this.taskCounters.fix++;
 		this.operations.push(
 			async notion =>
@@ -216,7 +217,7 @@ export class NotionMutationQueue {
 					page_id: id,
 					properties: {
 						[this.projectSchema.fields.areas]: {
-							relation: areas.map(id => ({id})),
+							relation: areasIsEmpty ? [] : areas.map(id => ({id})),
 						},
 						[this.projectSchema.fields.goals]: {
 							relation: goals.map(id => ({id})),
@@ -371,3 +372,5 @@ type ExistingPairData = {
 	todoistCommentId: string;
 	todoistHash: string;
 };
+
+export const NO_AREA = '';
