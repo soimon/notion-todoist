@@ -23,7 +23,7 @@ const projectSchema: ProjectSchema = {
 		archivedState: 'GNpW',
 		isPostponed: '%3A%3FZe',
 		isScheduled: 'uSRZ',
-		goal: '%7CjQZ',
+		parent: '%7CjQZ',
 		areas: 'fdjt',
 		place: 'QCy%7B',
 		people: 'F%7DnR',

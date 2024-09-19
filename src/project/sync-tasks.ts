@@ -125,11 +125,12 @@ export function createTaskSyncer(props: ConfigProps) {
 			// This means that a new three level task will be created in three syncs:
 			// otherwise the entire tree would have to be constructed from Todoists
 			// perspective as well.
-			const goalId = task.parent_id && notionIdByTodoistId.get(task.parent_id);
-			if (task.parent_id && !goalId) return;
+			const parentId =
+				task.parent_id && notionIdByTodoistId.get(task.parent_id);
+			if (task.parent_id && !parentId) return;
 			notion.createTask(
 				{
-					goalId,
+					parentId,
 					name: prefixNameWithRecurring(task.content, task.due?.is_recurring),
 					areaId: projectsAreaMap.get(task.project_id),
 					verb: task.labels.find(label => labels.verbs.has(label)),
@@ -270,7 +271,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		return {
 			id,
 			name: appifyNotionLinks(markdownName ?? ''),
-			goals: getRelationIds(properties.Goal) ?? [],
+			parents: getRelationIds(properties.Parent) ?? [],
 			areas: getRelationIds(properties.Areas) ?? [],
 			people: people?.type === 'string' ? people?.string?.split(',') ?? [] : [],
 			places: properties.Places?.multi_select?.map(({name}) => name) ?? [],
@@ -307,14 +308,14 @@ export function createTaskSyncer(props: ConfigProps) {
 	function mapToHierarchy(projects: Map<string, TaskDTO>) {
 		const root = new Map<string, TaskDTO[]>();
 		projects.forEach(project => {
-			const numParents = project.goals.length;
+			const numParents = project.parents.length;
 			if (numParents === 0)
 				project.areas.forEach(area =>
 					root.set(area, [...(root.get(area) || []), project])
 				);
 			else
-				project.goals.forEach(
-					goal => projects.get(goal)?.children.push(project)
+				project.parents.forEach(
+					parent => projects.get(parent)?.children.push(project)
 				);
 		});
 		return root;
@@ -526,7 +527,7 @@ export function createTaskSyncer(props: ConfigProps) {
 	type TaskDTO = {
 		id: string;
 		name: string;
-		goals: string[];
+		parents: string[];
 		areas: string[];
 		verb: string | undefined;
 		people: string[];
@@ -560,7 +561,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		},
 		Name: {type: 'title', id: 'title'},
 		Todoist: {type: 'url', id: props.schema.fields.todoist},
-		Goal: {type: 'relation', id: props.schema.fields.goal},
+		Parent: {type: 'relation', id: props.schema.fields.parent},
 		Areas: {type: 'relation', id: props.schema.fields.areas},
 		Places: {type: 'multi_select', id: props.schema.fields.place},
 		People: {type: 'formula', id: props.schema.fields.people},

@@ -63,7 +63,7 @@ export class NotionMutationQueue {
 		data: {
 			name: string;
 			areaId?: string;
-			goalId?: string;
+			parentId?: string;
 			verb?: string;
 			places: string[];
 			waitingForDate?: Date;
@@ -82,8 +82,10 @@ export class NotionMutationQueue {
 					...(data.areaId && {
 						[this.projectSchema.fields.areas]: {relation: [{id: data.areaId}]},
 					}),
-					...(data.goalId && {
-						[this.projectSchema.fields.goal]: {relation: [{id: data.goalId}]},
+					...(data.parentId && {
+						[this.projectSchema.fields.parent]: {
+							relation: [{id: data.parentId}],
+						},
 					}),
 					...(data.verb && {
 						[this.projectSchema.fields.verb]: {select: {name: data.verb}},
@@ -337,7 +339,7 @@ export type ProjectSchema = {
 		archivedState: string;
 		isPostponed: string;
 		isScheduled: string;
-		goal: string;
+		parent: string;
 		areas: string;
 		place: string;
 		people: string;
