@@ -96,7 +96,7 @@ export function createTaskSyncer(props: ConfigProps) {
 				syncTaskTree(
 					task,
 					{todoist, notion},
-					{projectId, areas: [areaId]},
+					{projectId, areas: [areaId], goals: task.goals},
 					completedTasks,
 					labels
 				);
@@ -273,6 +273,7 @@ export function createTaskSyncer(props: ConfigProps) {
 			name: appifyNotionLinks(markdownName ?? ''),
 			parents: getRelationIds(properties.Parent) ?? [],
 			areas: getRelationIds(properties.Areas) ?? [],
+			goals: getRelationIds(properties.Goal) ?? [],
 			people: people?.type === 'string' ? people?.string?.split(',') ?? [] : [],
 			places: properties.Places?.multi_select?.map(({name}) => name) ?? [],
 			verb: properties.Verb?.select?.name,
@@ -344,8 +345,12 @@ export function createTaskSyncer(props: ConfigProps) {
 
 		// Fix the area field in Notion
 
-		if (parentInfo.areas.sort().join() !== task.areas.sort().join())
-			notion.fixTaskArea(task.id, parentInfo.areas);
+		const areasDiffer =
+			parentInfo.areas.sort().join() !== task.areas.sort().join();
+		const goalsDiffer =
+			parentInfo.goals.sort().join() !== task.goals.sort().join();
+		if (areasDiffer || goalsDiffer)
+			notion.fixTaskAreaAndGoal(task.id, parentInfo.areas, parentInfo.goals);
 
 		if (!id) {
 			// Create
@@ -414,7 +419,11 @@ export function createTaskSyncer(props: ConfigProps) {
 			syncTaskTree(
 				child,
 				{todoist, notion},
-				{parentId: id, areas: parentInfo.areas},
+				{
+					parentId: id,
+					areas: parentInfo.areas,
+					goals: parentInfo.goals.length ? parentInfo.goals : child.goals,
+				},
 				completedTasks,
 				labels
 			)
@@ -529,6 +538,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		name: string;
 		parents: string[];
 		areas: string[];
+		goals: string[];
 		verb: string | undefined;
 		people: string[];
 		places: string[];
@@ -544,7 +554,7 @@ export function createTaskSyncer(props: ConfigProps) {
 	type ParentInfo = Pick<
 		AddTaskArgs,
 		'parentId' | 'projectId' | 'sectionId'
-	> & {areas: string[]};
+	> & {areas: string[]; goals: string[]};
 
 	const taskSchema = defineSchema({
 		'@Archived': {
@@ -563,6 +573,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		Todoist: {type: 'url', id: props.schema.fields.todoist},
 		Parent: {type: 'relation', id: props.schema.fields.parent},
 		Areas: {type: 'relation', id: props.schema.fields.areas},
+		Goal: {type: 'relation', id: props.schema.fields.goals},
 		Places: {type: 'multi_select', id: props.schema.fields.place},
 		People: {type: 'formula', id: props.schema.fields.people},
 		Verb: {type: 'select', id: props.schema.fields.verb},

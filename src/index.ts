@@ -25,6 +25,7 @@ const projectSchema: ProjectSchema = {
 		isScheduled: 'uSRZ',
 		parent: '%7CjQZ',
 		areas: 'fdjt',
+		goals: 'mXTD',
 		place: 'QCy%7B',
 		people: 'F%7DnR',
 		verb: '%7BWG%3C',

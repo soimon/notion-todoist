@@ -63,6 +63,7 @@ export class NotionMutationQueue {
 		data: {
 			name: string;
 			areaId?: string;
+			goalId?: string;
 			parentId?: string;
 			verb?: string;
 			places: string[];
@@ -207,7 +208,7 @@ export class NotionMutationQueue {
 		);
 	}
 
-	fixTaskArea(id: string, areas: string[]) {
+	fixTaskAreaAndGoal(id: string, areas: string[], goals: string[]) {
 		this.taskCounters.fix++;
 		this.operations.push(
 			async notion =>
@@ -216,6 +217,9 @@ export class NotionMutationQueue {
 					properties: {
 						[this.projectSchema.fields.areas]: {
 							relation: areas.map(id => ({id})),
+						},
+						[this.projectSchema.fields.goals]: {
+							relation: goals.map(id => ({id})),
 						},
 					},
 				})
@@ -340,6 +344,7 @@ export type ProjectSchema = {
 		isPostponed: string;
 		isScheduled: string;
 		parent: string;
+		goals: string;
 		areas: string;
 		place: string;
 		people: string;
