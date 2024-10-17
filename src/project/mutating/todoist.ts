@@ -166,11 +166,7 @@ export class TodoistMutationQueue {
 		id: string,
 		parentInfo: Pick<AddTaskArgs, 'parentId' | 'projectId' | 'sectionId'>
 	) {
-		if (
-			parentInfo.parentId === undefined &&
-			parentInfo.projectId === undefined &&
-			parentInfo.sectionId === undefined
-		)
+		if (!parentInfo.parentId && !parentInfo.projectId && !parentInfo.sectionId)
 			parentInfo.projectId = process.env.TODOIST_PROJECT_INBOX;
 		this.client.moveTask(id, parentInfo);
 		this.taskCounters.move++;
