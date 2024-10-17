@@ -39,6 +39,7 @@ jobs:
           NOTION_DB_PROJECTS: ${{ secrets.NOTION_DB_PROJECTS }}
           NOTION_DB_ATTACHMENTS: ${{ secrets.NOTION_DB_ATTACHMENTS }}
           TODOIST_TOKEN: ${{ secrets.TODOIST_TOKEN }}
+          TODOIST_PROJECT_INBOX: ${{ secrets.TODOIST_PROJECT_INBOX }}
           TODOIST_PROJECT_AREAS: ${{ secrets.TODOIST_PROJECT_AREAS }}
           TODOIST_PROJECT_RESOURCES: ${{ secrets.TODOIST_PROJECT_RESOURCES }}
           GIST_PAT: ${{ secrets.PAT }}
