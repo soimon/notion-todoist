@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd release/package
-          npm install
+          npm ci
 
       - name: Run Node
         env:
