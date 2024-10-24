@@ -28,7 +28,7 @@ jobs:
         uses: martinbeentjes/npm-get-version-action@v1.3.1
 
       - name: Package Application
-        run: npm pack && mv *.tgz notion-todoist-${{ steps.package-version.outputs.current-version }}.tar.gz
+        run: npm shrinkwrap && npm pack && mv *.tgz notion-todoist-${{ steps.package-version.outputs.current-version }}.tar.gz
         id: package
 
       - name: Create Release
