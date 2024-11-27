@@ -95,7 +95,7 @@ export function createTaskSyncer(props: ConfigProps) {
 				syncTaskTree(
 					task,
 					{todoist, notion},
-					{projectId, areas: [areaId], goals: task.goals},
+					{projectId, areas: [areaId]},
 					completedTasks,
 					labels
 				);
@@ -266,22 +266,18 @@ export function createTaskSyncer(props: ConfigProps) {
 		const id = normalizeId(_id);
 		const todoistData = tasks.synced.get(id);
 		const people = properties.People?.formula;
-		const goalArea = properties['@Goalarea']?.formula;
 		const waitingForDate = extractDateFromWaitingText(properties.Waiting);
 		return {
 			id,
 			name: appifyNotionLinks(markdownName ?? ''),
 			parents: getRelationIds(properties.Parent) ?? [],
 			areas: getRelationIds(properties.Areas) ?? [],
-			goals: getRelationIds(properties.Goal) ?? [],
 			people: people?.type === 'string' ? people?.string?.split(',') ?? [] : [],
 			places: properties.Places?.multi_select?.map(({name}) => name) ?? [],
 			verb: properties.Verb?.select?.name,
 			waitingForDate,
 			isPostponed: checkPostponed(properties, waitingForDate),
 			isScheduled: properties['@Scheduled']?.checkbox ?? false,
-			goalArea:
-				goalArea?.type === 'string' ? goalArea.string ?? undefined : undefined,
 			children: [],
 			todoistData,
 			notionData: properties,
@@ -350,22 +346,7 @@ export function createTaskSyncer(props: ConfigProps) {
 
 		const areasDiffer =
 			parentInfo.areas.sort().join() !== task.areas.sort().join();
-		const goalsDiffer =
-			parentInfo.goals.sort().join() !== task.goals.sort().join();
-		const areaIsEmptyButHasGoalWithArea =
-			!goalsDiffer &&
-			!areasDiffer &&
-			parentInfo.areas.length === 1 &&
-			parentInfo.areas[0] === '' &&
-			task.goalArea;
-		if (areasDiffer || goalsDiffer || areaIsEmptyButHasGoalWithArea)
-			notion.fixTaskAreaAndGoal(
-				task.id,
-				areaIsEmptyButHasGoalWithArea && task.goalArea
-					? [task.goalArea]
-					: parentInfo.areas,
-				parentInfo.goals
-			);
+		if (areasDiffer) notion.fixTaskArea(task.id, parentInfo.areas);
 
 		if (!id) {
 			// Create
@@ -437,7 +418,6 @@ export function createTaskSyncer(props: ConfigProps) {
 				{
 					parentId: id,
 					areas: parentInfo.areas,
-					goals: parentInfo.goals.length ? parentInfo.goals : child.goals,
 				},
 				completedTasks,
 				labels
@@ -558,13 +538,11 @@ export function createTaskSyncer(props: ConfigProps) {
 		name: string;
 		parents: string[];
 		areas: string[];
-		goals: string[];
 		verb: string | undefined;
 		people: string[];
 		places: string[];
 		isPostponed?: boolean;
 		isScheduled?: boolean;
-		goalArea?: string;
 		waitingForDate?: Date;
 		children: TaskDTO[];
 		todoistData?: SyncedTask;
@@ -575,7 +553,7 @@ export function createTaskSyncer(props: ConfigProps) {
 	type ParentInfo = Pick<
 		AddTaskArgs,
 		'parentId' | 'projectId' | 'sectionId'
-	> & {areas: string[]; goals: string[]};
+	> & {areas: string[]};
 
 	const taskSchema = defineSchema({
 		'@Archived': {
@@ -586,10 +564,6 @@ export function createTaskSyncer(props: ConfigProps) {
 			type: 'formula',
 			id: props.schema.fields.isPostponed,
 		},
-		'@Goalarea': {
-			type: 'formula',
-			id: props.schema.fields.goalArea,
-		},
 		'@Scheduled': {
 			type: 'checkbox',
 			id: props.schema.fields.isScheduled,
@@ -598,7 +572,6 @@ export function createTaskSyncer(props: ConfigProps) {
 		Todoist: {type: 'url', id: props.schema.fields.todoist},
 		Parent: {type: 'relation', id: props.schema.fields.parent},
 		Areas: {type: 'relation', id: props.schema.fields.areas},
-		Goal: {type: 'relation', id: props.schema.fields.goals},
 		Places: {type: 'multi_select', id: props.schema.fields.place},
 		People: {type: 'formula', id: props.schema.fields.people},
 		Verb: {type: 'select', id: props.schema.fields.verb},

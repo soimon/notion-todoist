@@ -1,10 +1,10 @@
-import { extractIdFromLink, hasLinks } from '@lib/notion';
-import { runLogged } from '@lib/utils/dev';
-import { makeIsoScheduledString } from '@lib/utils/time';
-import { Client } from '@notionhq/client';
-import { RichTextItemResponse } from '@notionhq/client/build/src/api-endpoints';
-import { markdownToBlocks } from '@tryfabric/martian';
-import { SyncPair } from './todoist';
+import {extractIdFromLink, hasLinks} from '@lib/notion';
+import {runLogged} from '@lib/utils/dev';
+import {makeIsoScheduledString} from '@lib/utils/time';
+import {Client} from '@notionhq/client';
+import {RichTextItemResponse} from '@notionhq/client/build/src/api-endpoints';
+import {markdownToBlocks} from '@tryfabric/martian';
+import {SyncPair} from './todoist';
 
 export class NotionMutationQueue {
 	private operations: ((notion: Client) => Promise<unknown>)[] = [];
@@ -208,7 +208,7 @@ export class NotionMutationQueue {
 		);
 	}
 
-	fixTaskAreaAndGoal(id: string, areas: string[], goals: string[]) {
+	fixTaskArea(id: string, areas: string[]) {
 		const areasIsEmpty = areas.length === 1 && areas[0] === NO_AREA;
 		this.taskCounters.fix++;
 		this.operations.push(
@@ -218,9 +218,6 @@ export class NotionMutationQueue {
 					properties: {
 						[this.projectSchema.fields.areas]: {
 							relation: areasIsEmpty ? [] : areas.map(id => ({id})),
-						},
-						[this.projectSchema.fields.goals]: {
-							relation: goals.map(id => ({id})),
 						},
 					},
 				})
@@ -345,13 +342,11 @@ export type ProjectSchema = {
 		isPostponed: string;
 		isScheduled: string;
 		parent: string;
-		goals: string;
 		areas: string;
 		place: string;
 		people: string;
 		verb: string;
 		waiting: string;
-		goalArea:string;
 		reviewState: string;
 		todoist: string;
 	}>;
