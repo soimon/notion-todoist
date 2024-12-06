@@ -10,7 +10,8 @@
 		"compile": "tsc",
 		"fix": "gts fix",
 		"run": "node --no-print-code .",
-		"watch": "tsc-watch --onSuccess \"nodemon .\""
+		"watch": "tsc-watch --onSuccess \"nodemon .\"",
+		"fetch-schema": "node build/src/index-fetch-schema.js"
 	},
 	"author": "soimon",
 	"license": "ISC",
