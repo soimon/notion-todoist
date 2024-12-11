@@ -354,6 +354,16 @@ export function createTaskSyncer(props: ConfigProps) {
 			parentInfo.areas.sort().join() !== task.areas.sort().join();
 		if (areasDiffer) notion.fixTaskArea(task.id, parentInfo.areas);
 
+		// Star syncing
+
+		if (task.starAt) {
+			if (task.starAt <= new Date()) notion.starTask(task.id, task.icon);
+			else if (task.star !== props.schema.valueOfWaiting)
+				notion.starTaskAsWaiting(task.id, task.icon);
+		}
+
+		// Syncing between Todoist and Notion
+
 		if (!id) {
 			// Create
 			if (action.includes(SyncAction.Create)) {

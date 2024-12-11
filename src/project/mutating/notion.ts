@@ -2,7 +2,10 @@ import {extractIdFromLink, hasLinks} from '@lib/notion';
 import {runLogged} from '@lib/utils/dev';
 import {makeIsoScheduledString} from '@lib/utils/time';
 import {Client} from '@notionhq/client';
-import {RichTextItemResponse} from '@notionhq/client/build/src/api-endpoints';
+import {
+	PageObjectResponse,
+	RichTextItemResponse,
+} from '@notionhq/client/build/src/api-endpoints';
 import {markdownToBlocks} from '@tryfabric/martian';
 import {SyncPair} from './todoist';
 
@@ -264,7 +267,72 @@ export class NotionMutationQueue {
 				})
 		);
 	}
+
+	starTask(id: string, icon: PageObjectResponse['icon']) {
+		this.taskCounters.update++;
+		this.operations.push(
+			async notion =>
+				await notion.pages.update({
+					page_id: id,
+					icon: getIconWithUpdatedColorOrUndefined(
+						icon,
+						this.projectSchema.colorOfStar
+					),
+					properties: {
+						[this.projectSchema.fields.star]: {
+							type: 'select',
+							select: {name: this.projectSchema.valueOfStar},
+						},
+						[this.projectSchema.fields.starAt]: {
+							type: 'date',
+							date: null,
+						},
+					},
+				})
+		);
+	}
+
+	starTaskAsWaiting(id: string, icon: PageObjectResponse['icon']) {
+		this.taskCounters.update++;
+		this.operations.push(
+			async notion =>
+				await notion.pages.update({
+					page_id: id,
+					icon: getIconWithUpdatedColorOrUndefined(
+						icon,
+						this.projectSchema.colorOfWaiting
+					),
+					properties: {
+						[this.projectSchema.fields.star]: {
+							type: 'select',
+							select: {name: this.projectSchema.valueOfWaiting},
+						},
+					},
+				})
+		);
+	}
 }
+
+const getIconWithUpdatedColorOrUndefined = (
+	icon: PageObjectResponse['icon'],
+	color: string
+) => {
+	if (
+		icon &&
+		icon.type === 'external' &&
+		icon.external.url.startsWith('https://www.notion.so/icons/')
+	) {
+		return {
+			type: 'external',
+			external: {
+				url: icon.external.url.replace(
+					/(https:\/\/www.notion.so\/icons\/[a-zA-Z0-9]+_)(.*?)(\.svg)/,
+					`$1${color}$3`
+				),
+			},
+		} as const;
+	} else return undefined;
+};
 
 const getUpdatedWaitingFor = (
 	date: Date | undefined,
@@ -354,6 +422,10 @@ export type ProjectSchema = {
 	}>;
 	idOfArchivedOption: string;
 	idOfNewNotesOption: string;
+	valueOfStar: string;
+	colorOfStar: string;
+	valueOfWaiting: string;
+	colorOfWaiting: string;
 	filterValueOfActive: string;
 };
 
