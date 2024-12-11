@@ -260,15 +260,19 @@ export function createTaskSyncer(props: ConfigProps) {
 		);
 
 	function transformToDTO(
-		{id: _id, markdownName, properties}: NotionProject,
+		{id: _id, markdownName, properties, icon}: NotionProject,
 		tasks: TodoistSyncData
 	): TaskDTO {
 		const id = normalizeId(_id);
 		const todoistData = tasks.synced.get(id);
 		const people = properties.People?.formula;
 		const waitingForDate = extractDateFromWaitingText(properties.Waiting);
+		const starAt = properties.StarAt?.date
+			? new Date(properties.StarAt.date.start)
+			: undefined;
 		return {
 			id,
+			icon,
 			name: appifyNotionLinks(markdownName ?? ''),
 			parents: getRelationIds(properties.Parent) ?? [],
 			areas: getRelationIds(properties.Areas) ?? [],
@@ -278,6 +282,8 @@ export function createTaskSyncer(props: ConfigProps) {
 			waitingForDate,
 			isPostponed: checkPostponed(properties, waitingForDate),
 			isScheduled: properties['@Scheduled']?.checkbox ?? false,
+			starAt,
+			star: properties.Star?.select?.name,
 			children: [],
 			todoistData,
 			notionData: properties,
@@ -535,6 +541,7 @@ export function createTaskSyncer(props: ConfigProps) {
 
 	type TaskDTO = {
 		id: string;
+		icon: NotionProject['icon'];
 		name: string;
 		parents: string[];
 		areas: string[];
@@ -544,6 +551,8 @@ export function createTaskSyncer(props: ConfigProps) {
 		isPostponed?: boolean;
 		isScheduled?: boolean;
 		waitingForDate?: Date;
+		starAt?: Date;
+		star?: string;
 		children: TaskDTO[];
 		todoistData?: SyncedTask;
 		notionData: NotionProject['properties'];
@@ -576,6 +585,8 @@ export function createTaskSyncer(props: ConfigProps) {
 		People: {type: 'formula', id: props.schema.fields.people},
 		Verb: {type: 'select', id: props.schema.fields.verb},
 		Waiting: {type: 'rich_text', id: props.schema.fields.waiting},
+		StarAt: {type: 'date', id: props.schema.fields.starAt},
+		Star: {type: 'select', id: props.schema.fields.star},
 		Archived: {type: 'select', id: props.schema.fields.reviewState},
 	});
 

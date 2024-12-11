@@ -348,6 +348,8 @@ export type ProjectSchema = {
 		verb: string;
 		waiting: string;
 		reviewState: string;
+		starAt: string;
+		star: string;
 		todoist: string;
 	}>;
 	idOfArchivedOption: string;

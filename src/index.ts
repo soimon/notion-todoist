@@ -30,6 +30,8 @@ const projectSchema: ProjectSchema = {
 		verb: '%7BWG%3C',
 		waiting: 'yVIB',
 		reviewState: 'OQcZ',
+		starAt: 'eVZD',
+		star: '%7CVYt',
 		todoist: '%3Ff%5Em',
 	},
 	filterValueOfActive: 'Actief',
