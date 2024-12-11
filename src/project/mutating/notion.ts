@@ -326,7 +326,7 @@ const getIconWithUpdatedColorOrUndefined = (
 			type: 'external',
 			external: {
 				url: icon.external.url.replace(
-					/(https:\/\/www.notion.so\/icons\/[a-zA-Z0-9]+_)(.*?)(\.svg)/,
+					/(https:\/\/www.notion.so\/icons\/[a-zA-Z0-9-]+_)(.*?)(\.svg)/,
 					`$1${color}$3`
 				),
 			},
