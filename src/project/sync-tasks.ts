@@ -356,10 +356,23 @@ export function createTaskSyncer(props: ConfigProps) {
 
 		// Star syncing
 
-		if (task.starAt) {
-			if (task.starAt <= new Date()) notion.starTask(task.id, task.icon);
-			else if (task.star !== props.schema.valueOfWaiting)
+		if (task.star) {
+			if (task.starAt) {
+				if (task.starAt <= new Date()) notion.starTask(task.id, task.icon);
+				else if (task.star !== props.schema.valueOfWaiting)
+					notion.starTaskAsWaiting(task.id, task.icon);
+			}
+
+			const taskIsStarredAndPostponed =
+				task.star !== props.schema.valueOfWaiting && task.isPostponed;
+			const taskIsStarredAsWaitingAndNoLongerPostponed =
+				task.star === props.schema.valueOfWaiting &&
+				!task.starAt &&
+				!task.isPostponed;
+			if (taskIsStarredAndPostponed)
 				notion.starTaskAsWaiting(task.id, task.icon);
+			else if (taskIsStarredAsWaitingAndNoLongerPostponed)
+				notion.starTaskAsGoal(task.id, task.icon);
 		}
 
 		// Syncing between Todoist and Notion

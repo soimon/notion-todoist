@@ -287,6 +287,10 @@ export class NotionMutationQueue {
 							type: 'date',
 							date: null,
 						},
+						[this.projectSchema.fields.waiting]: {
+							type: 'rich_text',
+							rich_text: [],
+						},
 					},
 				})
 		);
@@ -306,6 +310,26 @@ export class NotionMutationQueue {
 						[this.projectSchema.fields.star]: {
 							type: 'select',
 							select: {name: this.projectSchema.valueOfWaiting},
+						},
+					},
+				})
+		);
+	}
+
+	starTaskAsGoal(id: string, icon: PageObjectResponse['icon']) {
+		this.taskCounters.update++;
+		this.operations.push(
+			async notion =>
+				await notion.pages.update({
+					page_id: id,
+					icon: getIconWithUpdatedColorOrUndefined(
+						icon,
+						this.projectSchema.colorOfStar
+					),
+					properties: {
+						[this.projectSchema.fields.star]: {
+							type: 'select',
+							select: {name: this.projectSchema.valueOfGoal},
 						},
 					},
 				})
@@ -422,6 +446,7 @@ export type ProjectSchema = {
 	}>;
 	idOfArchivedOption: string;
 	idOfNewNotesOption: string;
+	valueOfGoal: string;
 	valueOfStar: string;
 	colorOfStar: string;
 	valueOfWaiting: string;

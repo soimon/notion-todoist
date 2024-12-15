@@ -35,6 +35,7 @@ const projectSchema: ProjectSchema = {
 		todoist: '%3Ff%5Em',
 	},
 	filterValueOfActive: 'Actief',
+	valueOfGoal: '🎯',
 	valueOfStar: '⭐',
 	colorOfStar: 'gray',
 	valueOfWaiting: '⏳',
