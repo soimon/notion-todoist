@@ -14,6 +14,6 @@ export default async () => {
     } else {
         console.log("syncing");
         const result = await sync();
-        console.log(result.statusText);
+        console.log(await result.text());
     }
 };
