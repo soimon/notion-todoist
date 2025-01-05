@@ -1,4 +1,4 @@
-import type { Config, Context } from "npm:@netlify/functions";
+import type { Config, Context } from "@netlify/functions";
 
 export const config: Config = {
     path: "/resume",

@@ -1,0 +1,12 @@
+{
+    "name": "notion-todoist-runner",
+    "version": "1.0.0",
+    "description": "",
+    "dependencies": {
+        "@netlify/blobs": "^8.1.0",
+        "@netlify/functions": "^3.0.0"
+    },
+    "devDependencies": {},
+    "author": "",
+    "license": "ISC"
+}
