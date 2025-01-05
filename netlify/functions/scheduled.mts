@@ -8,6 +8,6 @@ export const config: Config = {
 
 export default async (req: Request, context: Context) => {
     const isPaused = await getPaused();
-    if (isPaused) return new Response("Sync is paused.");
-    else return sync(req, context);
+    if (isPaused) return new Response("paused");
+    else return await sync(req, context);
 };
