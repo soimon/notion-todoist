@@ -3,7 +3,7 @@ import { getPaused } from "../../store";
 import sync from "./sync.mjs";
 
 export const config: Config = {
-    path: "/scheduled",
+    schedule: "*/10 * * * *",
 };
 
 export default async (req: Request, context: Context) => {
