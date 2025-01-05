@@ -1,3 +1,4 @@
+
 import type { Config, Context } from "@netlify/functions";
 
 export const config: Config = {
@@ -5,5 +6,5 @@ export const config: Config = {
 };
 
 export default async (req: Request, context: Context) => {
-    return new Response("Sync");
+    return new Response(`Synced!`);
 };
