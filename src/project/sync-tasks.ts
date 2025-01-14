@@ -14,6 +14,7 @@ import {Client as NotionClient} from '@notionhq/client';
 import {Integrations} from './integrations';
 import {MutationQueues} from './mutating';
 import {NO_AREA, ProjectSchema} from './mutating/notion';
+import {SyncPair} from './mutating/todoist';
 import {extractSyncStamp, generateContentHash, SyncStamp} from './syncstamp';
 
 export type ConfigProps = {
@@ -144,6 +145,25 @@ export function createTaskSyncer(props: ConfigProps) {
 		});
 
 		return {notionIdByTodoistId};
+	}
+
+	async function rehashAllTodoistTasks(
+		{comments, tasks}: Preparation,
+		{todoist}: MutationQueues
+	) {
+		const {synced} = mapTasksWithSyncDataFromComments(tasks, comments);
+		const pairs: SyncPair[] = Array.from(synced.entries())
+			.map(([notionId, task]) => ({
+				notionId,
+				commentId: task.syncCommentId,
+				hash: task.contentHash,
+			}))
+			.filter(
+				(pair): pair is typeof pair & {commentId: string} =>
+					pair.commentId !== undefined
+			);
+		todoist.syncTaskPairs(pairs);
+		return pairs;
 	}
 
 	//--------------------------------------------------------------------------------
@@ -640,5 +660,5 @@ export function createTaskSyncer(props: ConfigProps) {
 	// Return the actual function
 	//--------------------------------------------------------------------------------
 
-	return {prepare, stage};
+	return {prepare, stage, rehashAllTodoistTasks};
 }

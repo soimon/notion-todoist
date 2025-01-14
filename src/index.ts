@@ -16,6 +16,7 @@ configDotEnv();
 //--------------------------------------------------------------------------------
 
 const DEV_ONLY_SYNC_TEST_AREA = !!process.env.DEV;
+const DEV_REHASH_ALL_TODOIST_TASKS = process.argv.includes('--rehash-todoist');
 
 const projectSchema: ProjectSchema = {
 	database: process.env.NOTION_DB_PROJECTS,
@@ -83,7 +84,11 @@ const {prepare: prepareProjects, stage: stageProjects} = createProjectSyncer({
 	colorOrder: ['blue', 'pink', 'green', 'brown', 'orange', 'purple'],
 });
 
-const {prepare: prepareTasks, stage: stageTasks} = createTaskSyncer({
+const {
+	prepare: prepareTasks,
+	stage: stageTasks,
+	rehashAllTodoistTasks,
+} = createTaskSyncer({
 	schema: projectSchema,
 	onlySyncThisArea: DEV_ONLY_SYNC_TEST_AREA
 		? '12fc046759aa4bc188398a60f0cc0b28'
@@ -106,6 +111,10 @@ async function main() {
 		noteSchema,
 		DEV_ONLY_SYNC_TEST_AREA
 	);
+
+	if (DEV_REHASH_ALL_TODOIST_TASKS) {
+		console.log('GOING TO REHASH ALL TODOIST FLAGS...');
+	}
 
 	const labelsPreparation = await runLogged(
 		() => prepareLabels(integrations),
@@ -139,21 +148,27 @@ async function main() {
 		'Preparing tasks...',
 		'📝'
 	);
-	const {notionIdByTodoistId} = await runLogged(
-		() => stageTasks(tasksPreparation, mutationQueues),
-		'Diffing tasks...',
-		'📝'
-	);
-	const notesPreparation = await runLogged(
-		() => prepareNotes(integrations, notionIdByTodoistId),
-		'Preparing notes...',
-		'💬'
-	);
-	await runLogged(
-		() => stageNotes(notesPreparation, mutationQueues),
-		'Diffing notes...',
-		'💬'
-	);
+
+	if (DEV_REHASH_ALL_TODOIST_TASKS) {
+		console.log('#️⃣ Rehashing all Todoist tasks...');
+		await rehashAllTodoistTasks(tasksPreparation, mutationQueues);
+	} else {
+		const {notionIdByTodoistId} = await runLogged(
+			() => stageTasks(tasksPreparation, mutationQueues),
+			'Diffing tasks...',
+			'📝'
+		);
+		const notesPreparation = await runLogged(
+			() => prepareNotes(integrations, notionIdByTodoistId),
+			'Preparing notes...',
+			'💬'
+		);
+		await runLogged(
+			() => stageNotes(notesPreparation, mutationQueues),
+			'Diffing notes...',
+			'💬'
+		);
+	}
 	await commit();
 }
 
