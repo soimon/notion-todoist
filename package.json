@@ -1,56 +1,56 @@
 {
-	"name": "notion-todoist",
-	"version": "2.8.0",
-	"description": "",
-	"main": "build/src/index.js",
-	"types": "build/src/index.d.ts",
-	"scripts": {
-		"lint": "gts lint",
-		"clean": "gts clean",
-		"compile": "tsc",
-		"fix": "gts fix",
-		"run": "node --no-print-code .",
-		"watch": "tsc-watch --onSuccess \"nodemon .\"",
-		"fetch-schema": "node build/src/index-fetch-schema.js"
-	},
-	"author": "soimon",
-	"license": "ISC",
-	"engines": {
-		"node": ">=12.0.0"
-	},
-	"devDependencies": {
-		"@types/md5": "^2.3.5",
-		"@types/node": "20.8.2",
-		"@types/object.groupby": "^1.0.3",
-		"@types/uuid": "^9.0.7",
-		"@types/whatwg-url": "^11.0.5",
-		"gts": "^5.2.0",
-		"nodemon": "^3.0.2",
-		"tsc-watch": "^6.0.4",
-		"type-fest": "^4.8.3",
-		"typescript": "~5.2.0"
-	},
-	"dependencies": {
-		"@doist/todoist-api-typescript": "^3.0.1",
-		"@notionhq/client": "^2.2.15",
-		"@tryfabric/martian": "^1.2.4",
-		"@vighnesh153/github-gist": "^0.4.4",
-		"axios": "^1.6.2",
-		"dotenv": "^16.3.1",
-		"imgur": "^2.4.2",
-		"md5": "^2.3.0",
-		"module-alias": "^2.2.3",
-		"node-fetch": "^2.7.0",
-		"object.groupby": "^1.0.1",
-		"uuid": "^9.0.1"
-	},
-	"_moduleAliases": {
-		"@project": "build/src/project",
-		"@lib": "build/src/lib"
-	},
-	"nodemonConfig": {
-		"ignore": [
-			"**/*.json"
-		]
-	}
+  "name": "notion-todoist",
+  "version": "2.8.0",
+  "description": "",
+  "main": "build/src/index.js",
+  "types": "build/src/index.d.ts",
+  "scripts": {
+    "lint": "gts lint",
+    "clean": "gts clean",
+    "compile": "tsc",
+    "fix": "gts fix",
+    "run": "node --no-print-code .",
+    "watch": "tsc-watch --onSuccess \"nodemon .\"",
+    "fetch-schema": "node build/src/index-fetch-schema.js"
+  },
+  "author": "soimon",
+  "license": "ISC",
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "devDependencies": {
+    "@types/md5": "^2.3.5",
+    "@types/node": "20.8.2",
+    "@types/object.groupby": "^1.0.3",
+    "@types/uuid": "^9.0.7",
+    "@types/whatwg-url": "^11.0.5",
+    "gts": "^5.2.0",
+    "nodemon": "^3.0.2",
+    "tsc-watch": "^6.0.4",
+    "type-fest": "^4.8.3",
+    "typescript": "~5.2.0"
+  },
+  "dependencies": {
+    "@doist/todoist-api-typescript": "^3.0.3",
+    "@notionhq/client": "^2.2.15",
+    "@tryfabric/martian": "^1.2.4",
+    "@vighnesh153/github-gist": "^0.4.4",
+    "axios": "^1.6.2",
+    "dotenv": "^16.3.1",
+    "imgur": "^2.4.2",
+    "md5": "^2.3.0",
+    "module-alias": "^2.2.3",
+    "node-fetch": "^2.7.0",
+    "object.groupby": "^1.0.1",
+    "uuid": "^9.0.1"
+  },
+  "_moduleAliases": {
+    "@project": "build/src/project",
+    "@lib": "build/src/lib"
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "**/*.json"
+    ]
+  }
 }
