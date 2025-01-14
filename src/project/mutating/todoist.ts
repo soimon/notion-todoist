@@ -122,12 +122,14 @@ export class TodoistMutationQueue {
 			sectionId?: string | undefined;
 			content: string;
 			date?: Date;
+			deadline?: Date;
 		},
 		pair: NewPairData
 	): string {
 		const taskId = this.client.addTask({
 			...data,
 			...formatDate(data.date),
+			...formatDeadline(data.deadline),
 		});
 		this.syncTaskPair({
 			notionId: pair.notionId,
@@ -140,7 +142,7 @@ export class TodoistMutationQueue {
 
 	updateTask(
 		id: string,
-		data: {content: string; labels: string[]; date?: Date},
+		data: {content: string; labels: string[]; date?: Date; deadline?: Date},
 		pair: ExistingPairData
 	) {
 		const hash = generateContentHash(data);
@@ -153,6 +155,7 @@ export class TodoistMutationQueue {
 		this.client.updateTask(id, {
 			...data,
 			...formatDate(data.date),
+			...formatDeadline(data.deadline),
 		});
 		this.taskCounters.update++;
 	}
@@ -203,6 +206,13 @@ const formatDate = (date?: Date) => {
 	if (!date) return {};
 	return {
 		dueDate: makeIsoScheduledString(date, false),
+	};
+};
+
+const formatDeadline = (deadline?: Date) => {
+	if (!deadline) return {};
+	return {
+		deadlineDate: makeIsoScheduledString(deadline, false),
 	};
 };
 

@@ -135,6 +135,9 @@ export function createTaskSyncer(props: ConfigProps) {
 					verb: task.labels.find(label => labels.verbs.has(label)),
 					places: task.labels.filter(label => labels.places.has(label)),
 					waitingForDate: task.due?.date ? new Date(task.due?.date) : undefined,
+					deadline: task.deadline?.date
+						? new Date(task.deadline.date)
+						: undefined,
 				},
 				{todoistTaskId: task.id, todoistHash: task.contentHash}
 			);
@@ -169,6 +172,9 @@ export function createTaskSyncer(props: ConfigProps) {
 			const contentHash = generateContentHash({
 				...task,
 				date: task?.due?.date ? new Date(task.due.date) : undefined,
+				deadline: task?.deadline?.date
+					? new Date(task.deadline.date)
+					: undefined,
 			});
 			const myComments = comments.filter(c => c.item_id === task.id);
 			for (const comment of myComments) {
@@ -270,6 +276,9 @@ export function createTaskSyncer(props: ConfigProps) {
 		const starAt = properties.StarAt?.date
 			? new Date(properties.StarAt.date.start)
 			: undefined;
+		const deadline = properties.Deadline?.date
+			? new Date(properties.Deadline.date.start)
+			: undefined;
 		return {
 			id,
 			icon,
@@ -284,6 +293,7 @@ export function createTaskSyncer(props: ConfigProps) {
 			isScheduled: properties['@Scheduled']?.checkbox ?? false,
 			starAt,
 			star: properties.Star?.select?.name,
+			deadline,
 			children: [],
 			todoistData,
 			notionData: properties,
@@ -384,6 +394,7 @@ export function createTaskSyncer(props: ConfigProps) {
 					{
 						content: prefixNameWithPostponed(task.name, task.isPostponed),
 						date: task.waitingForDate,
+						deadline: task.deadline,
 						...parentInfo,
 						labels: generateLabelsTodoistShouldHave(task),
 					},
@@ -409,6 +420,7 @@ export function createTaskSyncer(props: ConfigProps) {
 						),
 						labels: generateLabelsTodoistShouldHave(task),
 						date: task.waitingForDate,
+						deadline: task.deadline,
 					},
 					{notionId: task.id, todoistCommentId: td.syncCommentId}
 				);
@@ -423,6 +435,9 @@ export function createTaskSyncer(props: ConfigProps) {
 						verb: td.labels.find(label => labels.verbs.has(label)),
 						places: td.labels.filter(label => labels.places.has(label)),
 						waitingForDate: td.due?.date ? new Date(td.due?.date) : undefined,
+						deadline: td.deadline?.date
+							? new Date(td.deadline.date)
+							: undefined,
 					},
 					task.notionData,
 					{todoistCommentId: td.syncCommentId, todoistHash: td.contentHash}
@@ -519,6 +534,7 @@ export function createTaskSyncer(props: ConfigProps) {
 
 	const areTasksEqual = (task: TaskDTO, todoistData: ApiTask) =>
 		!isDateChanged(task, todoistData) &&
+		!isDeadlineChanged(task, todoistData) &&
 		prefixNameWithPostponed(task.name.trim(), task.isPostponed) ===
 			prefixNameWithRecurring(
 				todoistData.content.trim(),
@@ -531,6 +547,11 @@ export function createTaskSyncer(props: ConfigProps) {
 		(task.waitingForDate
 			? makeIsoScheduledString(task.waitingForDate, false)
 			: undefined) !== todoistData.due?.date;
+
+	const isDeadlineChanged = (task: TaskDTO, todoistData: ApiTask) =>
+		(task.deadline
+			? makeIsoScheduledString(task.deadline, false)
+			: undefined) !== todoistData.deadline?.date;
 
 	const isSomewhereElse = (
 		td: Pick<ApiTask, 'parent_id' | 'project_id'>,
@@ -576,6 +597,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		waitingForDate?: Date;
 		starAt?: Date;
 		star?: string;
+		deadline?: Date;
 		children: TaskDTO[];
 		todoistData?: SyncedTask;
 		notionData: NotionProject['properties'];
@@ -608,6 +630,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		People: {type: 'formula', id: props.schema.fields.people},
 		Verb: {type: 'select', id: props.schema.fields.verb},
 		Waiting: {type: 'rich_text', id: props.schema.fields.waiting},
+		Deadline: {type: 'date', id: props.schema.fields.deadline},
 		StarAt: {type: 'date', id: props.schema.fields.starAt},
 		Star: {type: 'select', id: props.schema.fields.star},
 		Archived: {type: 'select', id: props.schema.fields.reviewState},

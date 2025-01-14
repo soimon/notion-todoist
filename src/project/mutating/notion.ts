@@ -71,6 +71,7 @@ export class NotionMutationQueue {
 			verb?: string;
 			places: string[];
 			waitingForDate?: Date;
+			deadline?: Date;
 		},
 		pair: NewPairData
 	) {
@@ -97,6 +98,11 @@ export class NotionMutationQueue {
 					...(data.waitingForDate && {
 						[this.projectSchema.fields.waiting]: {
 							rich_text: [createDateMention(data.waitingForDate)],
+						},
+					}),
+					...(data.deadline && {
+						[this.projectSchema.fields.deadline]: {
+							date: {start: makeIsoScheduledString(data.deadline, false)},
 						},
 					}),
 					...{
@@ -147,6 +153,7 @@ export class NotionMutationQueue {
 			verb?: string;
 			places: string[];
 			waitingForDate?: Date;
+			deadline?: Date;
 		},
 		original: {
 			Waiting?: {rich_text: RichTextItemResponse[]};
@@ -183,6 +190,13 @@ export class NotionMutationQueue {
 						...(waiting && {
 							[this.projectSchema.fields.waiting]: {
 								rich_text: waiting,
+							},
+						}),
+
+						// Deadline
+						...(data.deadline && {
+							[this.projectSchema.fields.deadline]: {
+								date: {start: makeIsoScheduledString(data.deadline, false)},
 							},
 						}),
 					},
@@ -439,6 +453,7 @@ export type ProjectSchema = {
 		people: string;
 		verb: string;
 		waiting: string;
+		deadline: string;
 		reviewState: string;
 		starAt: string;
 		star: string;

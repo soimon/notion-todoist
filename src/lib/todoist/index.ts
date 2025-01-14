@@ -220,7 +220,7 @@ export class TodoistSyncApi {
 		this.addCommand('section_move', {id, project_id});
 	}
 
-	addTask(task: AddTaskArgs): TemporaryId {
+	addTask(task: AddTaskArgs & DeadlineArg): TemporaryId {
 		return this.addCommand('item_add', {
 			content: task.content,
 			description: task.description,
@@ -231,10 +231,11 @@ export class TodoistSyncApi {
 			priority: task.priority,
 			duration: task.duration,
 			labels: task.labels,
+			deadline: {date: task.deadlineDate},
 		});
 	}
 
-	updateTask(id: string, task: UpdateTaskArgs): void {
+	updateTask(id: string, task: UpdateTaskArgs & DeadlineArg): void {
 		this.addCommand('item_update', {
 			id,
 			content: task.content,
@@ -243,6 +244,7 @@ export class TodoistSyncApi {
 			priority: task.priority,
 			duration: task.duration,
 			labels: task.labels,
+			deadline: {date: task.deadlineDate},
 		});
 	}
 
@@ -405,6 +407,7 @@ export type Snapshot = {
 		checked: boolean;
 		description: string;
 		due?: DueDate;
+		deadline?: DeadlineDate;
 		completed_at: string;
 		updated_at: string;
 		added_at: string;
@@ -434,6 +437,9 @@ export type Snapshot = {
 		reactions?: Record<string, string[]>;
 		file_attachment?: ApiAttachment;
 	}[];
+};
+type DeadlineDate = {
+	date: string;
 };
 type DueDate = {
 	date: string;
@@ -493,3 +499,7 @@ type AllApiTypes =
 export type ApiEvent<T extends {}> = {
 	[K in keyof T]: K extends `${infer T}_at` ? T : never;
 }[keyof T];
+
+export type DeadlineArg = {
+	deadlineDate?: string;
+};
