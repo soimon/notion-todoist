@@ -150,7 +150,7 @@ async function main() {
 	);
 
 	if (DEV_REHASH_ALL_TODOIST_TASKS) {
-		console.log('#️⃣ Rehashing all Todoist tasks...');
+		console.log('#️⃣  Rehashing all Todoist tasks...');
 		await rehashAllTodoistTasks(tasksPreparation, mutationQueues);
 	} else {
 		const {notionIdByTodoistId} = await runLogged(
