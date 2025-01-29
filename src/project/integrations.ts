@@ -25,10 +25,7 @@ export async function connectIntegrations(
 	const uploader = initUploader();
 	const notion = initNotion();
 	const [todoist, incrementalTodoist] = await runLogged(
-		async () => [
-			await initTodoist(),
-			await initIncrementalTodoist(lastSyncInfo),
-		],
+		() => Promise.all([initTodoist(), initIncrementalTodoist(lastSyncInfo)]),
 		'Fetching from Todoist...',
 		'📥'
 	);

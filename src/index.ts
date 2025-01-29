@@ -116,16 +116,14 @@ async function main() {
 		console.log('GOING TO REHASH ALL TODOIST FLAGS...');
 	}
 
-	const labelsPreparation = await runLogged(
-		() => prepareLabels(integrations),
-		'Fetching labels...',
-		'🏷️ '
-	);
-	const projectsPreparation = await runLogged(
-		() => prepareProjects(integrations),
-		'Preparing projects...',
-		'📂'
-	);
+	const [labelsPreparation, projectsPreparation] = await Promise.all([
+		runLogged(() => prepareLabels(integrations), 'Fetching labels...', '🏷️ '),
+		runLogged(
+			() => prepareProjects(integrations),
+			'Preparing projects...',
+			'📂'
+		),
+	]);
 
 	if (
 		labelsPreparation.labels.length + projectsPreparation.projects.length ===
@@ -133,16 +131,19 @@ async function main() {
 	)
 		return showServiceError();
 
-	const labels = await runLogged(
-		() => stageLabels(labelsPreparation, mutationQueues),
-		'Diffing labels...',
-		'🏷️ '
-	);
-	const {areaProjectsMap} = await runLogged(
-		() => stageProjects(projectsPreparation, mutationQueues),
-		'Diffing projects...',
-		'📂'
-	);
+	const [labels, {areaProjectsMap}] = await Promise.all([
+		runLogged(
+			() => stageLabels(labelsPreparation, mutationQueues),
+			'Diffing labels...',
+			'🏷️ '
+		),
+		runLogged(
+			() => stageProjects(projectsPreparation, mutationQueues),
+			'Diffing projects...',
+			'📂'
+		),
+	]);
+
 	const tasksPreparation = await runLogged(
 		() => prepareTasks(integrations, areaProjectsMap, labels),
 		'Preparing tasks...',
