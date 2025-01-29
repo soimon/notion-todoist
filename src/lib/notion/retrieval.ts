@@ -1,5 +1,8 @@
 import {Client} from '@notionhq/client';
-import {PageObjectResponse} from '@notionhq/client/build/src/api-endpoints';
+import {
+	PageObjectResponse,
+	QueryDatabaseResponse,
+} from '@notionhq/client/build/src/api-endpoints';
 import {
 	NotionPage,
 	Schema,
@@ -10,14 +13,14 @@ import {
 export async function retrievePage<TPropertiesList extends Schema>(options: {
 	id: string;
 	notion: Client;
-	properties: TPropertiesList;
+	schema: TPropertiesList;
 }): Promise<NotionPage<TPropertiesList> | undefined> {
 	const response = await options.notion.pages.retrieve({
 		page_id: options.id,
-		filter_properties: getPropertyIds(options.properties),
+		filter_properties: [...(getPropertyIds(options.schema) ?? []), 'title'],
 	});
 	if (!('url' in response)) return undefined;
-	return enhancePageProperties<TPropertiesList>(response, options.properties);
+	return enhancePageProperties<TPropertiesList>(response, options.schema);
 }
 
 type GetChangedPageOptions = Omit<QueryOptions, 'filter'> & {
@@ -29,7 +32,7 @@ export type SecondaryQueryFilters = Extract<
 	{and: unknown}
 >['and'];
 
-export async function getChangedPages<TSchema extends Schema>(
+export function getChangedPages<TSchema extends Schema>(
 	options: GetChangedPageOptions & {schema: TSchema}
 ): Promise<NotionPage<TSchema>[]> {
 	return queryDatabase({
@@ -71,11 +74,16 @@ export async function queryDatabase<TPropertiesList extends Schema>(
 	);
 }
 
-async function accumulateQueryResults(options: QueryOptions) {
+async function accumulateQueryResults<TPropertiesList extends Schema>(
+	options: QueryOptions & {schema: TPropertiesList}
+) {
 	let next_cursor: string | null = null;
 	const pages: PageObjectResponse[] = [];
 	do {
-		const response = await query(options, next_cursor ?? undefined);
+		const response: QueryDatabaseResponse = await query(
+			options,
+			next_cursor ?? undefined
+		);
 		next_cursor = response.next_cursor;
 		pages.push(
 			...response.results.filter(
@@ -85,15 +93,20 @@ async function accumulateQueryResults(options: QueryOptions) {
 	} while (next_cursor);
 	return pages;
 }
-``;
 
-const query = (
-	{database: database_id, filter, notion}: QueryOptions,
+const query = <TPropertiesList extends Schema>(
+	{
+		database: database_id,
+		filter,
+		notion,
+		schema,
+	}: QueryOptions & {schema: TPropertiesList},
 	startAt?: string
 ) =>
 	notion.databases.query({
 		database_id,
 		filter,
+		filter_properties: [...(getPropertyIds(schema) ?? []), 'title'],
 		page_size: 500,
 		start_cursor: startAt,
 	});
