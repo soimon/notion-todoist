@@ -630,10 +630,6 @@ export function createTaskSyncer(props: ConfigProps) {
 	> & {areas: string[]};
 
 	const taskSchema = defineSchema({
-		'@Archived': {
-			type: 'formula',
-			id: props.schema.fields.archivedState,
-		},
 		'@Postponed': {
 			type: 'formula',
 			id: props.schema.fields.isPostponed,
@@ -643,7 +639,6 @@ export function createTaskSyncer(props: ConfigProps) {
 			id: props.schema.fields.isScheduled,
 		},
 		Name: {type: 'title', id: 'title'},
-		Todoist: {type: 'url', id: props.schema.fields.todoist},
 		Parent: {type: 'relation', id: props.schema.fields.parent},
 		Areas: {type: 'relation', id: props.schema.fields.areas},
 		Places: {type: 'multi_select', id: props.schema.fields.place},
@@ -653,7 +648,6 @@ export function createTaskSyncer(props: ConfigProps) {
 		Deadline: {type: 'date', id: props.schema.fields.deadline},
 		StarAt: {type: 'date', id: props.schema.fields.starAt},
 		Star: {type: 'select', id: props.schema.fields.star},
-		Archived: {type: 'select', id: props.schema.fields.reviewState},
 	});
 
 	//--------------------------------------------------------------------------------

@@ -170,7 +170,7 @@ async function main() {
 			'💬'
 		);
 	}
-	await commit();
+	// await commit();
 }
 
 // Run
