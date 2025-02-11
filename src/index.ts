@@ -16,6 +16,7 @@ configDotEnv();
 //--------------------------------------------------------------------------------
 
 const DEV_ONLY_SYNC_TEST_AREA = !!process.env.DEV;
+const DEV_LOG_ONLY = process.argv.includes('--log-only');
 const DEV_REHASH_ALL_TODOIST_TASKS = process.argv.includes('--rehash-todoist');
 
 const projectSchema: ProjectSchema = {
@@ -108,8 +109,7 @@ const {prepare: prepareNotes, stage: stageNotes} = createNoteSyncer({
 async function main() {
 	const {integrations, mutationQueues, commit} = await connectIntegrations(
 		projectSchema,
-		noteSchema,
-		DEV_ONLY_SYNC_TEST_AREA
+		noteSchema
 	);
 
 	if (DEV_REHASH_ALL_TODOIST_TASKS) {
@@ -170,6 +170,7 @@ async function main() {
 			'💬'
 		);
 	}
+	if (DEV_LOG_ONLY) return;
 	await commit();
 }
 
