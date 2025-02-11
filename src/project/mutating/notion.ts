@@ -194,11 +194,12 @@ export class NotionMutationQueue {
 						}),
 
 						// Deadline
-						...(data.deadline && {
-							[this.projectSchema.fields.deadline]: {
-								date: {start: makeIsoScheduledString(data.deadline, false)},
-							},
-						}),
+
+						[this.projectSchema.fields.deadline]: {
+							date: data.deadline
+								? {start: makeIsoScheduledString(data.deadline, false)}
+								: null,
+						},
 					},
 				})
 		);
