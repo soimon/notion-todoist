@@ -19,6 +19,7 @@ export async function connectIntegrations(
 	mutationQueues: MutationQueues;
 	integrations: Integrations;
 	commit: () => Promise<void>;
+	log: () => void;
 }> {
 	const {lastSyncInfo, lastSyncInfoStore} = await getLastSyncInformation();
 	const uploader = initUploader();
@@ -51,6 +52,10 @@ export async function connectIntegrations(
 				'Storing last sync token...',
 				'📤'
 			);
+		},
+		log() {
+			mutationQueues.notion.log();
+			mutationQueues.todoist.log();
 		},
 	};
 }

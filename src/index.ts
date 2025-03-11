@@ -107,7 +107,7 @@ const {prepare: prepareNotes, stage: stageNotes} = createNoteSyncer({
 //--------------------------------------------------------------------------------
 
 async function main() {
-	const {integrations, mutationQueues, commit} = await connectIntegrations(
+	const {integrations, mutationQueues, commit, log} = await connectIntegrations(
 		projectSchema,
 		noteSchema
 	);
@@ -170,7 +170,10 @@ async function main() {
 			'💬'
 		);
 	}
-	if (DEV_LOG_ONLY) return;
+	if (DEV_LOG_ONLY) {
+		log();
+		return;
+	}
 	await commit();
 }
 

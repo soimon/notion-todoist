@@ -43,7 +43,7 @@ export class TodoistMutationQueue {
 		);
 	}
 
-	private log() {
+	log() {
 		if (this.taskCounters.create > 0)
 			console.log(`Create ${this.taskCounters.create} tasks in Todoist`);
 		if (this.taskCounters.update > 0)

@@ -41,7 +41,7 @@ export class NotionMutationQueue {
 		return this.syncQueue;
 	}
 
-	private log() {
+	log() {
 		if (this.taskCounters.create > 0)
 			console.log(`Create ${this.taskCounters.create} tasks in Notion`);
 		if (this.taskCounters.complete > 0)
