@@ -18,8 +18,7 @@ export async function connectIntegrations(
 ): Promise<{
 	mutationQueues: MutationQueues;
 	integrations: Integrations;
-	commit: () => Promise<void>;
-	log: () => void;
+	commit: (logOnly: boolean) => Promise<void>;
 }> {
 	const {lastSyncInfo, lastSyncInfoStore} = await getLastSyncInformation();
 	const uploader = initUploader();
@@ -40,22 +39,25 @@ export async function connectIntegrations(
 	return {
 		mutationQueues,
 		integrations: {todoist, incrementalTodoist, notion, uploader},
-		async commit() {
-			const pairs = await mutationQueues.notion.commit();
-			mutationQueues.todoist.syncTaskPairs(pairs);
-			await mutationQueues.todoist.commit();
-			runLogged(
+		async commit(logOnly = false) {
+			if (logOnly) {
+				mutationQueues.notion.log();
+				mutationQueues.todoist.log();
+			} else {
+				const pairs = await mutationQueues.notion.commit();
+				mutationQueues.todoist.syncTaskPairs(pairs);
+				await mutationQueues.todoist.commit();
+			}
+			await runLogged(
 				async () => {
 					const token = todoist.getLatestSyncToken();
-					if (token) await lastSyncInfoStore.setLastSyncInfo(token);
+					if (token && !logOnly) await lastSyncInfoStore.setLastSyncInfo(token);
 				},
-				'Storing last sync token...',
+				logOnly
+					? 'Retrieving last sync token...'
+					: 'Storing last sync token...',
 				'📤'
 			);
-		},
-		log() {
-			mutationQueues.notion.log();
-			mutationQueues.todoist.log();
 		},
 	};
 }
