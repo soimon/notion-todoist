@@ -545,11 +545,12 @@ export function createTaskSyncer(props: ConfigProps) {
 	};
 
 	const wasCompletedInTodoist = (task: TaskDTO, completedTasks: ApiTask[]) => {
-		return (
-			completedTasks.find(
-				t => removePrefixes(t.content) === removePrefixes(task.name)
-			) !== undefined
+		const completedTask = completedTasks.find(
+			t => removePrefixes(t.content) === removePrefixes(task.name)
 		);
+		// Don't mark as complete in Notion if the completed task was recurring
+		// Recurring tasks should always be synced from Todoist to Notion
+		return completedTask !== undefined && !completedTask.due?.is_recurring;
 	};
 
 	const areTasksEqual = (task: TaskDTO, todoistData: ApiTask) =>
