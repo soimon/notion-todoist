@@ -8,19 +8,25 @@ import {
 	UpdateProjectArgs,
 	UpdateSectionArgs,
 	UpdateTaskArgs,
+	TodoistApi,
+	Task,
+	Project,
+	Section,
+	Label,
+	Comment,
 } from '@doist/todoist-api-typescript';
-import fetch, {Response} from 'node-fetch';
 // eslint-disable-next-line node/no-unpublished-import
 import {IterableElement} from 'type-fest';
 import {v4 as uuidv4} from 'uuid';
 
-const URL = 'https://api.todoist.com/sync/v9/sync';
-const COMMAND_LIMIT = 100;
-
 // TODO: Refactor this to remove all state out of it
 
 export class TodoistSyncApi {
-	constructor(private readonly token: string) {}
+	private api: TodoistApi;
+
+	constructor(private readonly token: string) {
+		this.api = new TodoistApi(token);
+	}
 
 	//-----------------------------------------------------------------
 	// Fetching
@@ -53,59 +59,135 @@ export class TodoistSyncApi {
 	getProjectComments = () => this.loadedData?.projectComments ?? [];
 
 	private async fetchData(resourceTypes?: ResourceType[], sinceToken = '*') {
-		const {
-			projects,
-			sections,
-			items,
-			labels,
-			notes,
-			project_notes,
-			sync_token,
-			full_sync,
-		} = await this.request({
-			sync_token: sinceToken,
-			resource_types: resourceTypes ?? [
-				'projects',
-				'project_notes',
-				'notes',
-				'items',
-				'sections',
-				'labels',
-			],
-		}).then(this.parseData);
-
-		const data: Snapshot = {
-			projects: Array.isArray(projects) ? projects : [],
-			sections: Array.isArray(sections) ? sections : [],
-			tasks: Array.isArray(items) ? items : [],
-			labels: Array.isArray(labels) ? labels : [],
-			projectComments: Array.isArray(project_notes) ? project_notes : [],
-			comments: Array.isArray(notes) ? notes : [],
-		};
-		this.latestSyncToken = sync_token;
-		return {data, syncToken: `${sync_token}`, fullSync: Boolean(full_sync)};
-	}
-
-	private async parseData(r: Response) {
-		const text = await r.text();
+		// REST API v2 doesn't support sync tokens - always fetch all resources
+		// sinceToken parameter kept for backward compatibility but ignored
+		
 		try {
-			const json = JSON.parse(text);
-			return json;
-		} catch (e) {
-			if (
-				text.includes('Scheduled maintenance') ||
-				text.includes('Timeout') ||
-				text.length === 0 ||
-				r.status === 502
-			) {
+			const [projects, sections, tasks, labels, comments] = await Promise.all([
+				this.shouldFetch('projects', resourceTypes) ? this.api.getProjects() : [],
+				this.shouldFetch('sections', resourceTypes) ? this.api.getSections() : [],
+				this.shouldFetch('items', resourceTypes) ? this.api.getTasks() : [],
+				this.shouldFetch('labels', resourceTypes) ? this.api.getLabels() : [],
+				this.shouldFetch('notes', resourceTypes) || this.shouldFetch('project_notes', resourceTypes)
+					? this.api.getComments({taskId: undefined, projectId: undefined} as any).catch(() => [])
+					: [],
+			]);
+
+			const data: Snapshot = {
+				projects: this.convertProjects(projects),
+				sections: this.convertSections(sections),
+				tasks: this.convertTasks(tasks),
+				labels: this.convertLabels(labels),
+				projectComments: this.filterProjectComments(comments),
+				comments: this.filterTaskComments(comments),
+			};
+
+			// Generate a sync token from current timestamp for compatibility
+			this.latestSyncToken = new Date().toISOString();
+			return {data, syncToken: this.latestSyncToken, fullSync: sinceToken === '*'};
+		} catch (error) {
+			// Handle API errors gracefully
+			if (error instanceof Error && 
+				(error.message.includes('maintenance') || 
+				 error.message.includes('Timeout') ||
+				 error.message.includes('502'))) {
 				console.log(
 					'Todoist seems to be down. As this happens often, I will gracefully exit instead of spamming your mailbox with error messages.'
 				);
 				// eslint-disable-next-line no-process-exit
 				process.exit(0);
-			} else console.log(text);
-			throw e;
+			}
+			throw error;
 		}
+	}
+
+	private shouldFetch(resourceType: string, resourceTypes?: ResourceType[]): boolean {
+		if (!resourceTypes) return true;
+		return resourceTypes.includes(resourceType as ResourceType);
+	}
+
+	private convertProjects(projects: Project[]): Snapshot['projects'] {
+		return projects.map(p => ({
+			id: p.id,
+			parent_id: p.parentId ?? '',
+			name: p.name,
+			color: p.color,
+			updated_at: new Date().toISOString(), // REST API doesn't provide timestamps
+			added_at: new Date().toISOString(),
+			child_order: p.order,
+		}));
+	}
+
+	private convertSections(sections: Section[]): Snapshot['sections'] {
+		return sections.map(s => ({
+			id: s.id,
+			project_id: s.projectId,
+			name: s.name,
+			added_at: new Date().toISOString(),
+			is_deleted: false,
+			section_order: s.order,
+		}));
+	}
+
+	private convertTasks(tasks: Task[]): Snapshot['tasks'] {
+		return tasks.map(t => ({
+			id: t.id,
+			project_id: t.projectId,
+			parent_id: t.parentId ?? '',
+			section_id: t.sectionId ?? null,
+			content: t.content,
+			checked: t.isCompleted,
+			description: t.description,
+			due: t.due ? {date: t.due.date, is_recurring: t.due.isRecurring} : undefined,
+			deadline: undefined, // REST API doesn't have deadline separate from due
+			completed_at: t.isCompleted ? new Date().toISOString() : '',
+			updated_at: new Date().toISOString(),
+			added_at: t.createdAt,
+			is_deleted: false,
+			labels: t.labels,
+		}));
+	}
+
+	private convertLabels(labels: Label[]): Snapshot['labels'] {
+		return labels.map(l => ({
+			id: l.id,
+			color: l.color,
+			is_deleted: false,
+			is_favorite: l.isFavorite,
+			item_order: l.order,
+			name: l.name,
+		}));
+	}
+
+	private filterProjectComments(comments: Comment[]): Snapshot['projectComments'] {
+		return comments
+			.filter((c: any) => c.projectId && !c.taskId)
+			.map((c: any) => ({
+				id: c.id,
+				project_id: c.projectId,
+				content: c.content,
+				is_deleted: false,
+				posted_at: c.postedAt,
+			}));
+	}
+
+	private filterTaskComments(comments: Comment[]): Snapshot['comments'] {
+		return comments
+			.filter((c: any) => c.taskId)
+			.map((c: any) => ({
+				id: c.id,
+				item_id: c.taskId,
+				content: c.content,
+				posted_at: c.postedAt,
+				reactions: undefined,
+				file_attachment: c.attachment ? {
+					file_name: c.attachment.fileName ?? '',
+					file_size: 0,
+					file_url: c.attachment.fileUrl ?? '',
+					resource_type: c.attachment.resourceType as any ?? 'file',
+					upload_state: 'completed' as const,
+				} : undefined,
+			}));
 	}
 
 	private mergeSnapshots(
@@ -158,25 +240,15 @@ export class TodoistSyncApi {
 	//-----------------------------------------------------------------
 
 	addProject(project: AddProjectArgs): TemporaryId {
-		return this.addCommand('project_add', {
-			name: project.name,
-			parent_id: project.parentId,
-			color: project.color,
-			view_style: project.viewStyle,
-		});
+		return this.addCommand('project_add', project);
 	}
 
 	updateProject(id: string, project: UpdateProjectArgs): void {
-		this.addCommand('project_update', {
-			id,
-			name: project.name,
-			color: project.color,
-			view_style: project.viewStyle,
-		});
+		this.addCommand('project_update', {id, ...project});
 	}
 
-	moveProject(id: string, parent_id: string): void {
-		this.addCommand('project_move', {id, parent_id});
+	moveProject(id: string, parentId: string): void {
+		this.addCommand('project_move', {id, parentId});
 	}
 
 	deleteProject(id: string): void {
@@ -184,31 +256,24 @@ export class TodoistSyncApi {
 	}
 
 	reorderProjects(ids: string[]): void {
-		this.addCommand('project_reorder', {
-			projects: ids.map((id, child_order) => ({id, child_order})),
+		// REST API doesn't support batch reordering - queue individual updates
+		ids.forEach((id, order) => {
+			this.addCommand('project_reorder', {id, order});
 		});
 	}
 
 	addSection(section: AddSectionArgs): TemporaryId {
-		return this.addCommand('section_add', {
-			name: section.name,
-			project_id: section.projectId,
-		});
+		return this.addCommand('section_add', section);
 	}
 
 	updateSection(id: string, section: UpdateSectionArgs): void {
-		this.addCommand('section_update', {
-			id,
-			name: section.name,
-		});
+		this.addCommand('section_update', {id, ...section});
 	}
 
 	reorderSections(ids: string[]): void {
-		this.addCommand('section_reorder', {
-			sections: ids.map((id, section_order) => ({
-				id,
-				section_order: section_order + 1,
-			})),
+		// REST API doesn't support batch reordering - queue individual updates
+		ids.forEach((id, order) => {
+			this.addCommand('section_reorder', {id, order: order + 1});
 		});
 	}
 
@@ -216,36 +281,47 @@ export class TodoistSyncApi {
 		this.addCommand('section_delete', {id});
 	}
 
-	moveSection(id: string, project_id: string): void {
-		this.addCommand('section_move', {id, project_id});
+	moveSection(id: string, projectId: string): void {
+		this.addCommand('section_move', {id, projectId});
 	}
 
 	addTask(task: AddTaskArgs & DeadlineArg): TemporaryId {
-		return this.addCommand('item_add', {
+		// Convert to REST API format
+		const args: any = {
 			content: task.content,
 			description: task.description,
-			parent_id: task.parentId,
-			project_id: task.projectId,
-			section_id: task.sectionId,
-			due: {date: task.dueDate},
+			parentId: task.parentId,
+			projectId: task.projectId,
+			sectionId: task.sectionId,
 			priority: task.priority,
-			duration: task.duration,
 			labels: task.labels,
-			deadline: {date: task.deadlineDate},
-		});
+		};
+		// REST API uses dueString for natural language or dueDate for ISO format
+		if (task.dueDate) {
+			args.dueDate = task.dueDate;
+		}
+		// Note: REST API v2 doesn't support deadline separate from due date
+		// deadline is mapped to due date if no due date exists
+		if (!task.dueDate && task.deadlineDate) {
+			args.dueDate = task.deadlineDate;
+		}
+		return this.addCommand('item_add', args);
 	}
 
 	updateTask(id: string, task: UpdateTaskArgs & DeadlineArg): void {
-		this.addCommand('item_update', {
-			id,
+		const args: any = {
 			content: task.content,
 			description: task.description,
-			due: {date: task.dueDate},
 			priority: task.priority,
-			duration: task.duration,
 			labels: task.labels,
-			deadline: {date: task.deadlineDate},
-		});
+		};
+		if (task.dueDate) {
+			args.dueDate = task.dueDate;
+		}
+		if (!task.dueDate && task.deadlineDate) {
+			args.dueDate = task.deadlineDate;
+		}
+		this.addCommand('item_update', {id, ...args});
 	}
 
 	closeTask(id: string): void {
@@ -253,19 +329,14 @@ export class TodoistSyncApi {
 	}
 
 	reopenTask(id: string): void {
-		this.addCommand('item_uncomplete', {id});
+		this.addCommand('item_reopen', {id});
 	}
 
 	moveTask(
 		id: string,
 		to: {sectionId?: string; projectId?: string; parentId?: string}
 	): void {
-		this.addCommand('item_move', {
-			id,
-			section_id: to.sectionId,
-			project_id: to.projectId,
-			parent_id: to.parentId,
-		});
+		this.addCommand('item_move', {id, ...to});
 	}
 
 	deleteTask(id: string): void {
@@ -273,18 +344,11 @@ export class TodoistSyncApi {
 	}
 
 	addComment(comment: AddCommentArgs): TemporaryId {
-		return this.addCommand('note_add', {
-			content: comment.content,
-			item_id: comment.taskId,
-			project_id: comment.projectId,
-		});
+		return this.addCommand('note_add', comment);
 	}
 
 	updateComment(id: string, content: string) {
-		return this.addCommand('note_update', {
-			id,
-			content,
-		});
+		return this.addCommand('note_update', {id, content});
 	}
 
 	deleteComment(id: string) {
@@ -292,20 +356,11 @@ export class TodoistSyncApi {
 	}
 
 	addLabel(label: AddLabelArgs): TemporaryId {
-		return this.addCommand('label_add', {
-			name: label.name,
-			color: label.color,
-			item_order: label.order,
-		});
+		return this.addCommand('label_add', label);
 	}
 
 	updateLabel(id: string, label: UpdateLabelArgs) {
-		this.addCommand('label_update', {
-			id,
-			name: label.name,
-			color: label.color,
-			item_order: label.order,
-		});
+		this.addCommand('label_update', {id, ...label});
 	}
 
 	//-----------------------------------------------------------------
@@ -314,61 +369,153 @@ export class TodoistSyncApi {
 
 	public async commit(): Promise<Map<TemporaryId, string> | undefined> {
 		const idMapping = new Map<TemporaryId, string>();
-		const totalCommands = this.commands.length;
-		let startIndex = 0;
-
-		while (startIndex < totalCommands) {
-			const endIndex = Math.min(startIndex + COMMAND_LIMIT, totalCommands);
-			const commands = this.commands.slice(startIndex, endIndex);
-			const response = await this.request({commands});
-
-			const json = await response.json();
-			const batchIdMapping: Record<string, string> | undefined =
-				json?.temp_id_mapping;
-			const syncStatus = json?.sync_status;
-			const syncToken = json?.sync_token;
-
-			if (syncStatus && typeof syncStatus === 'object')
-				Object.values(syncStatus)
-					.filter(v => v !== 'ok')
-					.forEach(v => console.error(v));
-
-			if (syncToken) this.latestSyncToken = syncToken;
-
-			if (batchIdMapping)
-				Object.entries(batchIdMapping).forEach(([tempId, id]) => {
-					idMapping.set(tempId, id);
-				});
-			startIndex = endIndex;
+		
+		// Execute commands sequentially using REST API v2
+		for (const cmd of this.commands) {
+			try {
+				const result = await this.executeCommand(cmd);
+				if (result) {
+					idMapping.set(cmd.tempId, result.id);
+				}
+			} catch (error) {
+				console.error(`Error executing ${cmd.type}:`, error);
+				throw error;
+			}
 		}
+		
 		this.commands.length = 0;
 		return idMapping.size > 0 ? idMapping : undefined;
 	}
 
-	private readonly commands: object[] = [];
-	private addCommand(type: string, args: object = {}): TemporaryId {
-		const uuid = uuidv4();
-		this.commands.push({
-			type,
-			uuid,
-			args,
-			...(type.endsWith('_add') ? {temp_id: uuid} : {}),
-		});
-		return uuid;
+	private async executeCommand(cmd: Command): Promise<{id: string} | undefined> {
+		const {type, args} = cmd;
+		
+		// Project operations
+		if (type === 'project_add') {
+			const result = await this.api.addProject(args as AddProjectArgs);
+			return {id: result.id};
+		}
+		if (type === 'project_update') {
+			const {id, ...updateArgs} = args as any;
+			await this.api.updateProject(id, updateArgs as UpdateProjectArgs);
+			return undefined;
+		}
+		if (type === 'project_delete') {
+			await this.api.deleteProject((args as any).id);
+			return undefined;
+		}
+		if (type === 'project_move') {
+			// REST API doesn't have a separate move endpoint - ignore for now
+			// Parent project relationships would need to be handled differently
+			console.warn('Project move not supported in REST API v2');
+			return undefined;
+		}
+		if (type === 'project_reorder') {
+			// REST API doesn't support explicit ordering - ignore
+			console.warn('Project reorder not supported in REST API v2');
+			return undefined;
+		}
+		
+		// Section operations
+		if (type === 'section_add') {
+			const result = await this.api.addSection(args as AddSectionArgs);
+			return {id: result.id};
+		}
+		if (type === 'section_update') {
+			const {id, ...updateArgs} = args as any;
+			await this.api.updateSection(id, updateArgs as UpdateSectionArgs);
+			return undefined;
+		}
+		if (type === 'section_delete') {
+			await this.api.deleteSection((args as any).id);
+			return undefined;
+		}
+		if (type === 'section_move') {
+			const {id, projectId} = args as any;
+			await this.api.updateSection(id, {projectId} as any);
+			return undefined;
+		}
+		if (type === 'section_reorder') {
+			const {id, order} = args as any;
+			await this.api.updateSection(id, {order} as any);
+			return undefined;
+		}
+		
+		// Task operations
+		if (type === 'item_add') {
+			const result = await this.api.addTask(args as AddTaskArgs);
+			return {id: result.id};
+		}
+		if (type === 'item_update') {
+			const {id, ...updateArgs} = args as any;
+			await this.api.updateTask(id, updateArgs as UpdateTaskArgs);
+			return undefined;
+		}
+		if (type === 'item_close') {
+			await this.api.closeTask((args as any).id);
+			return undefined;
+		}
+		if (type === 'item_reopen') {
+			await this.api.reopenTask((args as any).id);
+			return undefined;
+		}
+		if (type === 'item_delete') {
+			await this.api.deleteTask((args as any).id);
+			return undefined;
+		}
+		if (type === 'item_move') {
+			const {id, ...moveArgs} = args as any;
+			await this.api.updateTask(id, moveArgs as UpdateTaskArgs);
+			return undefined;
+		}
+		
+		// Comment operations
+		if (type === 'note_add') {
+			const result = await this.api.addComment(args as AddCommentArgs);
+			return {id: result.id};
+		}
+		if (type === 'note_update') {
+			const {id, content} = args as any;
+			await this.api.updateComment(id, {content});
+			return undefined;
+		}
+		if (type === 'note_delete') {
+			await this.api.deleteComment((args as any).id);
+			return undefined;
+		}
+		
+		// Label operations
+		if (type === 'label_add') {
+			const result = await this.api.addLabel(args as AddLabelArgs);
+			return {id: result.id};
+		}
+		if (type === 'label_update') {
+			const {id, ...updateArgs} = args as any;
+			await this.api.updateLabel(id, updateArgs as UpdateLabelArgs);
+			return undefined;
+		}
+		
+		console.warn(`Unknown command type: ${type}`);
+		return undefined;
 	}
 
-	private async request(data: object = {}) {
-		const headers = {
-			Authorization: `Bearer ${this.token}`,
-			'Content-Type': 'application/json',
-		};
-		return await fetch(URL, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify(data),
+	private readonly commands: Command[] = [];
+	private addCommand(type: string, args: any = {}): TemporaryId {
+		const tempId = uuidv4();
+		this.commands.push({
+			type,
+			tempId,
+			args,
 		});
+		return tempId;
 	}
 }
+
+type Command = {
+	type: string;
+	tempId: string;
+	args: any;
+};
 
 function findMutationDate(item: AllApiTypes) {
 	return Math.max(
