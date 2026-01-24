@@ -14,7 +14,7 @@ import fetch, {Response} from 'node-fetch';
 import {IterableElement} from 'type-fest';
 import {v4 as uuidv4} from 'uuid';
 
-const URL = 'https://api.todoist.com/api/v1/sync';
+const URL = 'https://api.todoist.com/sync/v9/sync';
 const COMMAND_LIMIT = 100;
 
 // TODO: Refactor this to remove all state out of it
