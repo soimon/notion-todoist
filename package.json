@@ -13,6 +13,7 @@
 		"watch": "tsc-watch --onSuccess \"nodemon .\"",
 		"watch-log-only": "tsc-watch --onSuccess \"nodemon . --log-only\"",
 		"fetch-schema": "node build/src/index-fetch-schema.js",
+		"test": "tsc-watch --onSuccess \"nodemon build/src/test.js\"",
 		"rehash": "node . --rehash-todoist"
 	},
 	"author": "soimon",
@@ -33,7 +34,7 @@
 		"typescript": "~5.2.0"
 	},
 	"dependencies": {
-		"@doist/todoist-api-typescript": "^3.0.3",
+		"@doist/todoist-api-typescript": "^4.0.0",
 		"@notionhq/client": "^2.2.15",
 		"@tryfabric/martian": "^1.2.4",
 		"@vighnesh153/github-gist": "^0.4.4",
