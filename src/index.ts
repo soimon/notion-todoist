@@ -31,6 +31,7 @@ const projectSchema: ProjectSchema = {
 		people: 'F%7DnR',
 		verb: '%7BWG%3C',
 		waiting: 'yVIB',
+		scheduledAt: 'TODO', // Replace with the actual property ID after creating the date field in Notion
 		deadline: 'HiWj',
 		reviewState: 'OQcZ',
 		starAt: 'eVZD',

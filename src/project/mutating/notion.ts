@@ -4,7 +4,6 @@ import {makeIsoScheduledString} from '@lib/utils/time';
 import {Client} from '@notionhq/client';
 import {
 	PageObjectResponse,
-	RichTextItemResponse,
 } from '@notionhq/client/build/src/api-endpoints';
 import {markdownToBlocks} from '@tryfabric/martian';
 import {SyncPair} from './todoist';
@@ -96,8 +95,8 @@ export class NotionMutationQueue {
 						[this.projectSchema.fields.verb]: {select: {name: data.verb}},
 					}),
 					...(data.waitingForDate && {
-						[this.projectSchema.fields.waiting]: {
-							rich_text: [createDateMention(data.waitingForDate)],
+						[this.projectSchema.fields.scheduledAt]: {
+							date: {start: makeIsoScheduledString(data.waitingForDate, false)},
 						},
 					}),
 					...(data.deadline && {
@@ -155,17 +154,9 @@ export class NotionMutationQueue {
 			waitingForDate?: Date;
 			deadline?: Date;
 		},
-		original: {
-			Waiting?: {rich_text: RichTextItemResponse[]};
-		},
 		pair: ExistingPairData
 	) {
 		this.taskCounters.update++;
-
-		const waiting = getUpdatedWaitingFor(
-			data.waitingForDate,
-			original.Waiting?.rich_text
-		);
 
 		this.operations.push(
 			async notion =>
@@ -186,15 +177,14 @@ export class NotionMutationQueue {
 							multi_select: data.places.map(name => ({name})),
 						},
 
-						// Waiting for date
-						...(waiting && {
-							[this.projectSchema.fields.waiting]: {
-								rich_text: waiting,
-							},
-						}),
+						// Scheduled at date
+						[this.projectSchema.fields.scheduledAt]: {
+							date: data.waitingForDate
+								? {start: makeIsoScheduledString(data.waitingForDate, false)}
+								: null,
+						},
 
 						// Deadline
-
 						[this.projectSchema.fields.deadline]: {
 							date: data.deadline
 								? {start: makeIsoScheduledString(data.deadline, false)}
@@ -302,9 +292,9 @@ export class NotionMutationQueue {
 							type: 'date',
 							date: null,
 						},
-						[this.projectSchema.fields.waiting]: {
-							type: 'rich_text',
-							rich_text: [],
+						[this.projectSchema.fields.scheduledAt]: {
+							type: 'date',
+							date: null,
 						},
 					},
 				})
@@ -373,47 +363,6 @@ const getIconWithUpdatedColorOrUndefined = (
 	} else return undefined;
 };
 
-const getUpdatedWaitingFor = (
-	date: Date | undefined,
-	original: RichTextItemResponse[] | undefined
-) => {
-	const dateMention = createDateMention(date);
-	if (!original?.length) return dateMention ? [dateMention] : [];
-	else {
-		const firstMentionWasDate = checkFirstMentionForDate(original);
-		if (dateMention) {
-			if (firstMentionWasDate) return [dateMention, ...original.slice(1)];
-			else return [dateMention, {text: {content: ', '}}, ...original];
-		} else {
-			if (firstMentionWasDate) {
-				const withoutDate = original.slice(1);
-				if (withoutDate[0]?.type === 'text')
-					withoutDate[0].text.content = withoutDate[0].text.content.replace(
-						/^, /,
-						''
-					);
-				if (
-					withoutDate
-						.map(item => item.plain_text)
-						.join('')
-						.trim() === ''
-				)
-					return [];
-				return withoutDate;
-			} else return undefined;
-		}
-	}
-};
-
-function checkFirstMentionForDate(
-	waitingRichText: RichTextItemResponse[]
-): boolean {
-	return (
-		waitingRichText[0]?.type === 'mention' &&
-		waitingRichText[0]?.mention.type === 'date'
-	);
-}
-
 function formatTitle(text: string) {
 	if (hasLinks(text)) {
 		const linkSearch = /\[.*?\]\((.*?)\)/g;
@@ -454,6 +403,7 @@ export type ProjectSchema = {
 		people: string;
 		verb: string;
 		waiting: string;
+		scheduledAt: string;
 		deadline: string;
 		reviewState: string;
 		starAt: string;

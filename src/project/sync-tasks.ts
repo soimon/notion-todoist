@@ -292,7 +292,9 @@ export function createTaskSyncer(props: ConfigProps) {
 		const id = normalizeId(_id);
 		const todoistData = tasks.synced.get(id);
 		const people = properties.People?.formula;
-		const waitingForDate = extractDateFromWaitingText(properties.Waiting);
+		const waitingForDate = properties.ScheduledAt?.date
+			? new Date(properties.ScheduledAt.date.start)
+			: undefined;
 		const starAt = properties.StarAt?.date
 			? new Date(properties.StarAt.date.start)
 			: undefined;
@@ -309,7 +311,7 @@ export function createTaskSyncer(props: ConfigProps) {
 			places: properties.Places?.multi_select?.map(({name}) => name) ?? [],
 			verb: properties.Verb?.select?.name,
 			waitingForDate,
-			isPostponed: checkPostponed(properties, waitingForDate),
+			isPostponed: checkPostponed(properties),
 			isScheduled: properties['@Scheduled']?.checkbox ?? false,
 			starAt,
 			star: properties.Star?.select?.name,
@@ -320,25 +322,10 @@ export function createTaskSyncer(props: ConfigProps) {
 		};
 	}
 
-	function extractDateFromWaitingText(
-		waiting: NotionProject['properties']['Waiting']
-	): Date | undefined {
-		if (!waiting) return;
-		const firstItem = waiting.rich_text[0];
-		if (!firstItem) return;
-		if (firstItem.type === 'mention' && firstItem.mention.type === 'date') {
-			return new Date(firstItem.mention.date.start);
-		} else return;
-	}
-
-	const checkPostponed = (
-		properties: NotionProject['properties'],
-		waitingForDate: Date | undefined
-	) =>
+	const checkPostponed = (properties: NotionProject['properties']) =>
 		(properties['@Postponed']?.formula?.type === 'boolean'
 			? Boolean(properties['@Postponed']?.formula.boolean)
-			: false) ||
-		(Boolean(properties.Waiting?.rich_text.length) && !waitingForDate);
+			: false) || Boolean(properties.Waiting?.rich_text.length);
 
 	function mapToHierarchy(projects: Map<string, TaskDTO>) {
 		const root = new Map<string, TaskDTO[]>();
@@ -459,7 +446,6 @@ export function createTaskSyncer(props: ConfigProps) {
 							? new Date(td.deadline.date)
 							: undefined,
 					},
-					task.notionData,
 					{todoistCommentId: td.syncCommentId, todoistHash: td.contentHash}
 				);
 			if (action.includes(SyncAction.Move)) todoist.moveTask(id, parentInfo);
@@ -646,6 +632,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		People: {type: 'formula', id: props.schema.fields.people},
 		Verb: {type: 'select', id: props.schema.fields.verb},
 		Waiting: {type: 'rich_text', id: props.schema.fields.waiting},
+		ScheduledAt: {type: 'date', id: props.schema.fields.scheduledAt},
 		Deadline: {type: 'date', id: props.schema.fields.deadline},
 		StarAt: {type: 'date', id: props.schema.fields.starAt},
 		Star: {type: 'select', id: props.schema.fields.star},
