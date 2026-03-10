@@ -102,12 +102,6 @@ export class NotionMutationQueue {
 							date: {start: makeIsoScheduledString(data.deadline, false)},
 						},
 					}),
-					...{
-						[this.projectSchema.fields.isScheduled]: {
-							type: 'checkbox',
-							checkbox: data.waitingForDate ? true : false,
-						},
-					},
 					...(data.places.length && {
 						[this.projectSchema.fields.place]: {
 							multi_select: data.places.map(name => ({name})),
@@ -123,25 +117,6 @@ export class NotionMutationQueue {
 		});
 	}
 
-	updateTaskFlags(id: string, flags: {isScheduled?: boolean}) {
-		this.taskCounters.update++;
-
-		this.operations.push(
-			async notion =>
-				await notion.pages.update({
-					page_id: id,
-					properties: {
-						// Is scheduled
-						...{
-							[this.projectSchema.fields.isScheduled]: {
-								type: 'checkbox',
-								checkbox: flags.isScheduled ?? false,
-							},
-						},
-					},
-				})
-		);
-	}
 
 	updateTask(
 		id: string,
@@ -398,7 +373,6 @@ export type ProjectSchema = {
 	fields: Readonly<{
 		archivedState: string;
 		isPostponed: string;
-		isScheduled: string;
 		parent: string;
 		areas: string;
 		place: string;

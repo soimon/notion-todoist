@@ -311,8 +311,7 @@ export function createTaskSyncer(props: ConfigProps) {
 			places: properties.Places?.multi_select?.map(({name}) => name) ?? [],
 			verb: properties.Verb?.select?.name,
 			waitingForDate,
-			isPostponed: checkPostponed(properties, waitingForDate),
-			isScheduled: properties['@Scheduled']?.checkbox ?? false,
+			isPostponed: checkPostponed(properties),
 			starAt,
 			star: properties.Star?.select?.name,
 			deadline,
@@ -455,14 +454,6 @@ export function createTaskSyncer(props: ConfigProps) {
 			if (action.includes(SyncAction.Move)) todoist.moveTask(id, parentInfo);
 		}
 
-		if (action.includes(SyncAction.ReflagInNotion))
-			notion.updateTaskFlags(task.id, {
-				isScheduled: !!(action.includes(SyncAction.Update) ||
-				action.includes(SyncAction.Create)
-					? task.waitingForDate
-					: task.todoistData?.due?.date),
-			});
-
 		// Recurse
 
 		task.children.forEach(child =>
@@ -523,14 +514,6 @@ export function createTaskSyncer(props: ConfigProps) {
 			if (isSomewhereElse(td, parentInfo)) actions.push(SyncAction.Move);
 		}
 
-		// Reflagging
-
-		const shouldBeScheduled = !!(actions.includes(SyncAction.Update) ||
-		actions.includes(SyncAction.Create)
-			? task.waitingForDate
-			: task.todoistData?.due?.date);
-		if (shouldBeScheduled !== task.isScheduled)
-			actions.push(SyncAction.ReflagInNotion);
 		return actions;
 	};
 
@@ -593,7 +576,6 @@ export function createTaskSyncer(props: ConfigProps) {
 		Move,
 		CompleteInNotion,
 		UpdateInNotion,
-		ReflagInNotion,
 	}
 
 	type TaskDTO = {
@@ -606,7 +588,6 @@ export function createTaskSyncer(props: ConfigProps) {
 		people: string[];
 		places: string[];
 		isPostponed?: boolean;
-		isScheduled?: boolean;
 		waitingForDate?: Date;
 		starAt?: Date;
 		star?: string;
@@ -626,10 +607,6 @@ export function createTaskSyncer(props: ConfigProps) {
 		'@Postponed': {
 			type: 'formula',
 			id: props.schema.fields.isPostponed,
-		},
-		'@Scheduled': {
-			type: 'checkbox',
-			id: props.schema.fields.isScheduled,
 		},
 		Name: {type: 'title', id: 'title'},
 		Parent: {type: 'relation', id: props.schema.fields.parent},

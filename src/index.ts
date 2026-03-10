@@ -24,7 +24,6 @@ const projectSchema: ProjectSchema = {
 	fields: {
 		archivedState: 'GNpW',
 		isPostponed: '%3A%3FZe',
-		isScheduled: 'uSRZ',
 		parent: '%7CjQZ',
 		areas: 'fdjt',
 		place: 'QCy%7B',
