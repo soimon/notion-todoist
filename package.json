@@ -13,6 +13,7 @@
 		"watch": "tsc-watch --onSuccess \"nodemon .\"",
 		"watch-log-only": "tsc-watch --onSuccess \"nodemon . --log-only\"",
 		"fetch-schema": "node build/src/index-fetch-schema.js",
+		"migrate-scheduled": "node build/src/index-migrate-scheduled.js",
 		"test": "tsc-watch --onSuccess \"nodemon build/src/test.js\"",
 		"rehash": "node . --rehash-todoist"
 	},

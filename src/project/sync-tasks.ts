@@ -292,7 +292,9 @@ export function createTaskSyncer(props: ConfigProps) {
 		const id = normalizeId(_id);
 		const todoistData = tasks.synced.get(id);
 		const people = properties.People?.formula;
-		const waitingForDate = extractDateFromWaitingText(properties.Waiting);
+		const waitingForDate = properties.ScheduledAt?.date
+			? new Date(properties.ScheduledAt.date.start)
+			: undefined;
 		const starAt = properties.StarAt?.date
 			? new Date(properties.StarAt.date.start)
 			: undefined;
@@ -310,7 +312,6 @@ export function createTaskSyncer(props: ConfigProps) {
 			verb: properties.Verb?.select?.name,
 			waitingForDate,
 			isPostponed: checkPostponed(properties, waitingForDate),
-			isScheduled: properties['@Scheduled']?.checkbox ?? false,
 			starAt,
 			star: properties.Star?.select?.name,
 			deadline,
@@ -318,17 +319,6 @@ export function createTaskSyncer(props: ConfigProps) {
 			todoistData,
 			notionData: properties,
 		};
-	}
-
-	function extractDateFromWaitingText(
-		waiting: NotionProject['properties']['Waiting']
-	): Date | undefined {
-		if (!waiting) return;
-		const firstItem = waiting.rich_text[0];
-		if (!firstItem) return;
-		if (firstItem.type === 'mention' && firstItem.mention.type === 'date') {
-			return new Date(firstItem.mention.date.start);
-		} else return;
 	}
 
 	const checkPostponed = (
@@ -459,19 +449,10 @@ export function createTaskSyncer(props: ConfigProps) {
 							? new Date(td.deadline.date)
 							: undefined,
 					},
-					task.notionData,
 					{todoistCommentId: td.syncCommentId, todoistHash: td.contentHash}
 				);
 			if (action.includes(SyncAction.Move)) todoist.moveTask(id, parentInfo);
 		}
-
-		if (action.includes(SyncAction.ReflagInNotion))
-			notion.updateTaskFlags(task.id, {
-				isScheduled: !!(action.includes(SyncAction.Update) ||
-				action.includes(SyncAction.Create)
-					? task.waitingForDate
-					: task.todoistData?.due?.date),
-			});
 
 		// Recurse
 
@@ -533,14 +514,6 @@ export function createTaskSyncer(props: ConfigProps) {
 			if (isSomewhereElse(td, parentInfo)) actions.push(SyncAction.Move);
 		}
 
-		// Reflagging
-
-		const shouldBeScheduled = !!(actions.includes(SyncAction.Update) ||
-		actions.includes(SyncAction.Create)
-			? task.waitingForDate
-			: task.todoistData?.due?.date);
-		if (shouldBeScheduled !== task.isScheduled)
-			actions.push(SyncAction.ReflagInNotion);
 		return actions;
 	};
 
@@ -550,7 +523,9 @@ export function createTaskSyncer(props: ConfigProps) {
 		);
 		// Don't mark as complete in Notion if the completed task was recurring
 		// Recurring tasks should always be synced from Todoist to Notion
-		return completedTask !== undefined && completedTask.due?.is_recurring !== true;
+		return (
+			completedTask !== undefined && completedTask.due?.is_recurring !== true
+		);
 	};
 
 	const areTasksEqual = (task: TaskDTO, todoistData: ApiTask) =>
@@ -601,7 +576,6 @@ export function createTaskSyncer(props: ConfigProps) {
 		Move,
 		CompleteInNotion,
 		UpdateInNotion,
-		ReflagInNotion,
 	}
 
 	type TaskDTO = {
@@ -614,7 +588,6 @@ export function createTaskSyncer(props: ConfigProps) {
 		people: string[];
 		places: string[];
 		isPostponed?: boolean;
-		isScheduled?: boolean;
 		waitingForDate?: Date;
 		starAt?: Date;
 		star?: string;
@@ -635,10 +608,6 @@ export function createTaskSyncer(props: ConfigProps) {
 			type: 'formula',
 			id: props.schema.fields.isPostponed,
 		},
-		'@Scheduled': {
-			type: 'checkbox',
-			id: props.schema.fields.isScheduled,
-		},
 		Name: {type: 'title', id: 'title'},
 		Parent: {type: 'relation', id: props.schema.fields.parent},
 		Areas: {type: 'relation', id: props.schema.fields.areas},
@@ -646,6 +615,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		People: {type: 'formula', id: props.schema.fields.people},
 		Verb: {type: 'select', id: props.schema.fields.verb},
 		Waiting: {type: 'rich_text', id: props.schema.fields.waiting},
+		ScheduledAt: {type: 'date', id: props.schema.fields.scheduledAt},
 		Deadline: {type: 'date', id: props.schema.fields.deadline},
 		StarAt: {type: 'date', id: props.schema.fields.starAt},
 		Star: {type: 'select', id: props.schema.fields.star},
