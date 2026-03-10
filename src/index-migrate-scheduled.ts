@@ -18,7 +18,7 @@ const FIELDS = {
 	archivedState: 'GNpW',
 	areas: 'fdjt',
 	waiting: 'yVIB',
-	scheduledAt: 'TODO', // Replace with the actual property ID after creating the date field in Notion
+	scheduledAt: 'Scheduled at',
 };
 
 const filterValueOfActive = 'Actief';
