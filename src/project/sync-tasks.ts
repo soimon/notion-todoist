@@ -311,7 +311,7 @@ export function createTaskSyncer(props: ConfigProps) {
 			places: properties.Places?.multi_select?.map(({name}) => name) ?? [],
 			verb: properties.Verb?.select?.name,
 			waitingForDate,
-			isPostponed: checkPostponed(properties),
+			isPostponed: checkPostponed(properties, waitingForDate),
 			starAt,
 			star: properties.Star?.select?.name,
 			deadline,
