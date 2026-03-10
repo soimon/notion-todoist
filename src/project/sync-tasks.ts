@@ -311,7 +311,7 @@ export function createTaskSyncer(props: ConfigProps) {
 			places: properties.Places?.multi_select?.map(({name}) => name) ?? [],
 			verb: properties.Verb?.select?.name,
 			waitingForDate,
-			isPostponed: checkPostponed(properties),
+			isPostponed: checkPostponed(properties, waitingForDate),
 			isScheduled: properties['@Scheduled']?.checkbox ?? false,
 			starAt,
 			star: properties.Star?.select?.name,
@@ -322,10 +322,14 @@ export function createTaskSyncer(props: ConfigProps) {
 		};
 	}
 
-	const checkPostponed = (properties: NotionProject['properties']) =>
+	const checkPostponed = (
+		properties: NotionProject['properties'],
+		waitingForDate: Date | undefined
+	) =>
 		(properties['@Postponed']?.formula?.type === 'boolean'
 			? Boolean(properties['@Postponed']?.formula.boolean)
-			: false) || Boolean(properties.Waiting?.rich_text.length);
+			: false) ||
+		(Boolean(properties.Waiting?.rich_text.length) && !waitingForDate);
 
 	function mapToHierarchy(projects: Map<string, TaskDTO>) {
 		const root = new Map<string, TaskDTO[]>();
@@ -536,7 +540,9 @@ export function createTaskSyncer(props: ConfigProps) {
 		);
 		// Don't mark as complete in Notion if the completed task was recurring
 		// Recurring tasks should always be synced from Todoist to Notion
-		return completedTask !== undefined && completedTask.due?.is_recurring !== true;
+		return (
+			completedTask !== undefined && completedTask.due?.is_recurring !== true
+		);
 	};
 
 	const areTasksEqual = (task: TaskDTO, todoistData: ApiTask) =>
