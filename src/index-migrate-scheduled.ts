@@ -15,7 +15,6 @@ const DEV_LOG_ONLY = process.argv.includes('--log-only');
 const TEST_AREA_ID = '12fc046759aa4bc188398a60f0cc0b28';
 
 const FIELDS = {
-	archivedState: 'GNpW',
 	areas: 'fdjt',
 	waiting: 'yVIB',
 	scheduledAt: 'Scheduled at',
@@ -60,13 +59,7 @@ async function migrate() {
 		schema: migrationSchema,
 		database: process.env.NOTION_DB_PROJECTS,
 		filter: {
-			and: [
-				{
-					property: FIELDS.archivedState,
-					formula: {string: {equals: filterValueOfActive}},
-				},
-				...areaFilter,
-			],
+			and: [...areaFilter],
 		},
 	});
 

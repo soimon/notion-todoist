@@ -30,7 +30,7 @@ const projectSchema: ProjectSchema = {
 		people: 'F%7DnR',
 		verb: '%7BWG%3C',
 		waiting: 'yVIB',
-		scheduledAt: 'Scheduled at',
+		scheduledAt: '_%5C%3As',
 		deadline: 'HiWj',
 		reviewState: 'OQcZ',
 		starAt: 'eVZD',
