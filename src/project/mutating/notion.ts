@@ -2,9 +2,7 @@ import {extractIdFromLink, hasLinks} from '@lib/notion';
 import {runLogged} from '@lib/utils/dev';
 import {makeIsoScheduledString} from '@lib/utils/time';
 import {Client} from '@notionhq/client';
-import {
-	PageObjectResponse,
-} from '@notionhq/client/build/src/api-endpoints';
+import {PageObjectResponse} from '@notionhq/client/build/src/api-endpoints';
 import {markdownToBlocks} from '@tryfabric/martian';
 import {SyncPair} from './todoist';
 
@@ -291,6 +289,10 @@ export class NotionMutationQueue {
 						[this.projectSchema.fields.starAt]: {
 							type: 'date',
 							date: null,
+						},
+						[this.projectSchema.fields.waiting]: {
+							type: 'rich_text',
+							rich_text: [],
 						},
 						[this.projectSchema.fields.scheduledAt]: {
 							type: 'date',
