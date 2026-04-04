@@ -1,4 +1,4 @@
-import {extractIdFromLink, hasLinks, isNoticonPageIcon, NoticonPageIcon} from '@lib/notion';
+import {extractIdFromLink, hasLinks, isIconProp, NotionIconProp} from '@lib/notion';
 import {runLogged} from '@lib/utils/dev';
 import {makeIsoScheduledString} from '@lib/utils/time';
 import {Client} from '@notionhq/client';
@@ -339,12 +339,12 @@ const getIconWithUpdatedColorOrUndefined = (
 			},
 		} as const;
 	}
-	if (isNoticonPageIcon(icon as unknown)) {
-		const noticonIcon = icon as unknown as NoticonPageIcon;
+	if (isIconProp(icon as unknown)) {
+		const iconProp = icon as unknown as NotionIconProp;
 		return {
 			type: 'icon',
-			icon: {name: noticonIcon.icon.name, color},
-		} as NoticonPageIcon;
+			icon: {name: iconProp.icon.name, color},
+		} as NotionIconProp;
 	}
 	return undefined;
 };
