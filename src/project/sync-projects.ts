@@ -2,6 +2,8 @@ import {
 	defineSchema,
 	extractIdFromLink,
 	getPlainText,
+	isNoticonPageIcon,
+	NoticonPageIcon,
 	NotionPage,
 	queryDatabase,
 } from '@lib/notion';
@@ -208,12 +210,15 @@ export function createProjectSyncer<C extends Record<string, Color>>({
 			name ?? '?'
 		}`;
 
-	const mapColor = (icon: NotionArea['icon']) =>
-		notionToTodoistColors[
+	const mapColor = (icon: NotionArea['icon']) => {
+		const colorKey =
 			icon?.type === 'external'
 				? icon.external.url.match(/_([a-z]+)\.svg/)?.[1] ?? ''
-				: ''
-		];
+				: isNoticonPageIcon(icon as unknown)
+					? (icon as unknown as NoticonPageIcon).icon.color
+					: '';
+		return notionToTodoistColors[colorKey];
+	};
 
 	const byColor = (
 		[, {color: colorA}]: [string, {color?: string}],
