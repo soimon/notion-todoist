@@ -1,6 +1,31 @@
 import {PageObjectResponse} from '@notionhq/client/build/src/api-endpoints';
 import {normalizeId} from './parsing';
 
+export type NotionColor =
+	| 'gray'
+	| 'lightgray'
+	| 'brown'
+	| 'yellow'
+	| 'orange'
+	| 'green'
+	| 'blue'
+	| 'purple'
+	| 'pink'
+	| 'red';
+
+export type NotionIconProp = {
+	type: 'icon';
+	icon: {name: string; color: NotionColor};
+};
+
+export function isIconProp(icon: unknown): icon is NotionIconProp {
+	return (
+		typeof icon === 'object' &&
+		icon !== null &&
+		(icon as {type?: string}).type === 'icon'
+	);
+}
+
 export type NotionPage<TSchema extends Schema> = Omit<
 	PageObjectResponse,
 	'properties'

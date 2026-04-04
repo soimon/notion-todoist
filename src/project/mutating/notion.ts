@@ -1,4 +1,4 @@
-import {extractIdFromLink, hasLinks} from '@lib/notion';
+import {extractIdFromLink, hasLinks, isIconProp, NotionIconProp} from '@lib/notion';
 import {runLogged} from '@lib/utils/dev';
 import {makeIsoScheduledString} from '@lib/utils/time';
 import {Client} from '@notionhq/client';
@@ -322,7 +322,8 @@ export class NotionMutationQueue {
 const getIconWithUpdatedColorOrUndefined = (
 	icon: PageObjectResponse['icon'],
 	color: string
-) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+): any => {
 	if (
 		icon &&
 		icon.type === 'external' &&
@@ -337,7 +338,15 @@ const getIconWithUpdatedColorOrUndefined = (
 				),
 			},
 		} as const;
-	} else return undefined;
+	}
+	if (isIconProp(icon as unknown)) {
+		const iconProp = icon as unknown as NotionIconProp;
+		return {
+			type: 'icon',
+			icon: {name: iconProp.icon.name, color},
+		} as NotionIconProp;
+	}
+	return undefined;
 };
 
 function formatTitle(text: string) {
