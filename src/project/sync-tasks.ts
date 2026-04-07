@@ -286,7 +286,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		);
 
 	function transformToDTO(
-		{id: _id, markdownName, properties, icon}: NotionProject,
+		{id: _id, markdownName, properties}: NotionProject,
 		tasks: TodoistSyncData
 	): TaskDTO {
 		const id = normalizeId(_id);
@@ -295,15 +295,14 @@ export function createTaskSyncer(props: ConfigProps) {
 		const waitingForDate = properties.ScheduledAt?.date
 			? new Date(properties.ScheduledAt.date.start)
 			: undefined;
-		const starAt = properties.StarAt?.date
-			? new Date(properties.StarAt.date.start)
+		const pinAt = properties.PinAt?.date
+			? new Date(properties.PinAt.date.start)
 			: undefined;
 		const deadline = properties.Deadline?.date
 			? new Date(properties.Deadline.date.start)
 			: undefined;
 		return {
 			id,
-			icon,
 			name: appifyNotionLinks(markdownName ?? ''),
 			parents: getRelationIds(properties.Parent) ?? [],
 			areas: getRelationIds(properties.Areas) ?? [],
@@ -312,7 +311,7 @@ export function createTaskSyncer(props: ConfigProps) {
 			verb: properties.Verb?.select?.name,
 			waitingForDate,
 			isPostponed: checkPostponed(properties, waitingForDate),
-			starAt,
+			pinAt,
 			pinned: properties.Pinned?.checkbox ?? false,
 			deadline,
 			children: [],
@@ -376,8 +375,8 @@ export function createTaskSyncer(props: ConfigProps) {
 
 		// Pinned syncing
 
-		if (task.starAt && task.starAt <= new Date()) {
-			notion.pinTask(task.id, task.icon);
+		if (task.pinAt && task.pinAt <= new Date()) {
+			notion.pinTask(task.id);
 		}
 
 		// Syncing between Todoist and Notion
@@ -565,7 +564,6 @@ export function createTaskSyncer(props: ConfigProps) {
 
 	type TaskDTO = {
 		id: string;
-		icon: NotionProject['icon'];
 		name: string;
 		parents: string[];
 		areas: string[];
@@ -574,7 +572,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		places: string[];
 		isPostponed?: boolean;
 		waitingForDate?: Date;
-		starAt?: Date;
+		pinAt?: Date;
 		pinned: boolean;
 		deadline?: Date;
 		children: TaskDTO[];
@@ -602,7 +600,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		Waiting: {type: 'rich_text', id: props.schema.fields.waiting},
 		ScheduledAt: {type: 'date', id: props.schema.fields.scheduledAt},
 		Deadline: {type: 'date', id: props.schema.fields.deadline},
-		StarAt: {type: 'date', id: props.schema.fields.starAt},
+		PinAt: {type: 'date', id: props.schema.fields.pinAt},
 		Pinned: {type: 'checkbox', id: props.schema.fields.pinned},
 	});
 

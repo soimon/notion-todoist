@@ -1,8 +1,7 @@
-import {extractIdFromLink, hasLinks, isIconProp, NotionIconProp} from '@lib/notion';
+import {extractIdFromLink, hasLinks} from '@lib/notion';
 import {runLogged} from '@lib/utils/dev';
 import {makeIsoScheduledString} from '@lib/utils/time';
 import {Client} from '@notionhq/client';
-import {PageObjectResponse} from '@notionhq/client/build/src/api-endpoints';
 import {markdownToBlocks} from '@tryfabric/martian';
 import {SyncPair} from './todoist';
 
@@ -246,22 +245,18 @@ export class NotionMutationQueue {
 		);
 	}
 
-	pinTask(id: string, icon: PageObjectResponse['icon']) {
+	pinTask(id: string) {
 		this.taskCounters.update++;
 		this.operations.push(
 			async notion =>
 				await notion.pages.update({
 					page_id: id,
-					icon: getIconWithUpdatedColorOrUndefined(
-						icon,
-						this.projectSchema.colorOfPinned
-					),
 					properties: {
 						[this.projectSchema.fields.pinned]: {
 							type: 'checkbox',
 							checkbox: true,
 						},
-						[this.projectSchema.fields.starAt]: {
+						[this.projectSchema.fields.pinAt]: {
 							type: 'date',
 							date: null,
 						},
@@ -270,36 +265,6 @@ export class NotionMutationQueue {
 		);
 	}
 }
-
-const getIconWithUpdatedColorOrUndefined = (
-	icon: PageObjectResponse['icon'],
-	color: string
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-): any => {
-	if (
-		icon &&
-		icon.type === 'external' &&
-		icon.external.url.startsWith('https://www.notion.so/icons/')
-	) {
-		return {
-			type: 'external',
-			external: {
-				url: icon.external.url.replace(
-					/(https:\/\/www.notion.so\/icons\/[a-zA-Z0-9-]+_)(.*?)(\.svg)/,
-					`$1${color}$3`
-				),
-			},
-		} as const;
-	}
-	if (isIconProp(icon as unknown)) {
-		const iconProp = icon as unknown as NotionIconProp;
-		return {
-			type: 'icon',
-			icon: {name: iconProp.icon.name, color},
-		} as NotionIconProp;
-	}
-	return undefined;
-};
 
 function formatTitle(text: string) {
 	if (hasLinks(text)) {
@@ -343,13 +308,12 @@ export type ProjectSchema = {
 		scheduledAt: string;
 		deadline: string;
 		reviewState: string;
-		starAt: string;
+		pinAt: string;
 		pinned: string;
 		todoist: string;
 	}>;
 	idOfArchivedOption: string;
 	idOfNewNotesOption: string;
-	colorOfPinned: string;
 	filterValueOfActive: string;
 };
 
