@@ -34,15 +34,11 @@ const projectSchema: ProjectSchema = {
 		deadline: 'HiWj',
 		reviewState: 'OQcZ',
 		starAt: 'eVZD',
-		star: '%7CVYt',
+		pinned: 'PINNED_PROPERTY_ID', // TODO: Replace with the actual Notion property ID
 		todoist: '%3Ff%5Em',
 	},
 	filterValueOfActive: 'Actief',
-	valueOfGoal: '🎯',
-	valueOfStar: '⭐',
-	colorOfStar: 'gray',
-	valueOfWaiting: '⏳',
-	colorOfWaiting: 'purple',
+	colorOfPinned: 'gray',
 	idOfArchivedOption: 'e363f213-a760-4b0f-a87c-1cd0f04624f7',
 	idOfNewNotesOption: '02376990-9e21-4503-b498-73428a3c0d23',
 };

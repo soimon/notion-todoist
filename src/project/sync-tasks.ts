@@ -313,7 +313,7 @@ export function createTaskSyncer(props: ConfigProps) {
 			waitingForDate,
 			isPostponed: checkPostponed(properties, waitingForDate),
 			starAt,
-			star: properties.Star?.select?.name,
+			pinned: properties.Pinned?.checkbox ?? false,
 			deadline,
 			children: [],
 			todoistData,
@@ -374,25 +374,10 @@ export function createTaskSyncer(props: ConfigProps) {
 			parentInfo.areas.sort().join() !== task.areas.sort().join();
 		if (areasDiffer) notion.fixTaskArea(task.id, parentInfo.areas);
 
-		// Star syncing
+		// Pinned syncing
 
-		if (task.star) {
-			if (task.starAt) {
-				if (task.starAt <= new Date()) notion.starTask(task.id, task.icon);
-				else if (task.star !== props.schema.valueOfWaiting)
-					notion.starTaskAsWaiting(task.id, task.icon);
-			}
-
-			const taskIsStarredAndPostponed =
-				task.star !== props.schema.valueOfWaiting && task.isPostponed;
-			const taskIsStarredAsWaitingAndNoLongerPostponed =
-				task.star === props.schema.valueOfWaiting &&
-				!task.starAt &&
-				!task.isPostponed;
-			if (taskIsStarredAndPostponed)
-				notion.starTaskAsWaiting(task.id, task.icon);
-			else if (taskIsStarredAsWaitingAndNoLongerPostponed)
-				notion.starTaskAsGoal(task.id, task.icon);
+		if (task.starAt && task.starAt <= new Date()) {
+			notion.pinTask(task.id, task.icon);
 		}
 
 		// Syncing between Todoist and Notion
@@ -590,7 +575,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		isPostponed?: boolean;
 		waitingForDate?: Date;
 		starAt?: Date;
-		star?: string;
+		pinned: boolean;
 		deadline?: Date;
 		children: TaskDTO[];
 		todoistData?: SyncedTask;
@@ -618,7 +603,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		ScheduledAt: {type: 'date', id: props.schema.fields.scheduledAt},
 		Deadline: {type: 'date', id: props.schema.fields.deadline},
 		StarAt: {type: 'date', id: props.schema.fields.starAt},
-		Star: {type: 'select', id: props.schema.fields.star},
+		Pinned: {type: 'checkbox', id: props.schema.fields.pinned},
 	});
 
 	//--------------------------------------------------------------------------------

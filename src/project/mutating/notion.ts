@@ -246,7 +246,7 @@ export class NotionMutationQueue {
 		);
 	}
 
-	starTask(id: string, icon: PageObjectResponse['icon']) {
+	pinTask(id: string, icon: PageObjectResponse['icon']) {
 		this.taskCounters.update++;
 		this.operations.push(
 			async notion =>
@@ -254,64 +254,16 @@ export class NotionMutationQueue {
 					page_id: id,
 					icon: getIconWithUpdatedColorOrUndefined(
 						icon,
-						this.projectSchema.colorOfStar
+						this.projectSchema.colorOfPinned
 					),
 					properties: {
-						[this.projectSchema.fields.star]: {
-							type: 'select',
-							select: {name: this.projectSchema.valueOfStar},
+						[this.projectSchema.fields.pinned]: {
+							type: 'checkbox',
+							checkbox: true,
 						},
 						[this.projectSchema.fields.starAt]: {
 							type: 'date',
 							date: null,
-						},
-						[this.projectSchema.fields.waiting]: {
-							type: 'rich_text',
-							rich_text: [],
-						},
-						[this.projectSchema.fields.scheduledAt]: {
-							type: 'date',
-							date: null,
-						},
-					},
-				})
-		);
-	}
-
-	starTaskAsWaiting(id: string, icon: PageObjectResponse['icon']) {
-		this.taskCounters.update++;
-		this.operations.push(
-			async notion =>
-				await notion.pages.update({
-					page_id: id,
-					icon: getIconWithUpdatedColorOrUndefined(
-						icon,
-						this.projectSchema.colorOfWaiting
-					),
-					properties: {
-						[this.projectSchema.fields.star]: {
-							type: 'select',
-							select: {name: this.projectSchema.valueOfWaiting},
-						},
-					},
-				})
-		);
-	}
-
-	starTaskAsGoal(id: string, icon: PageObjectResponse['icon']) {
-		this.taskCounters.update++;
-		this.operations.push(
-			async notion =>
-				await notion.pages.update({
-					page_id: id,
-					icon: getIconWithUpdatedColorOrUndefined(
-						icon,
-						this.projectSchema.colorOfStar
-					),
-					properties: {
-						[this.projectSchema.fields.star]: {
-							type: 'select',
-							select: {name: this.projectSchema.valueOfGoal},
 						},
 					},
 				})
@@ -392,16 +344,12 @@ export type ProjectSchema = {
 		deadline: string;
 		reviewState: string;
 		starAt: string;
-		star: string;
+		pinned: string;
 		todoist: string;
 	}>;
 	idOfArchivedOption: string;
 	idOfNewNotesOption: string;
-	valueOfGoal: string;
-	valueOfStar: string;
-	colorOfStar: string;
-	valueOfWaiting: string;
-	colorOfWaiting: string;
+	colorOfPinned: string;
 	filterValueOfActive: string;
 };
 
