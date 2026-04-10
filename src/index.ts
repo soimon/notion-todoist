@@ -23,7 +23,6 @@ const projectSchema: ProjectSchema = {
 	database: process.env.NOTION_DB_PROJECTS,
 	fields: {
 		archivedState: 'GNpW',
-		isPostponed: '%3A%3FZe',
 		parent: '%7CjQZ',
 		areas: 'fdjt',
 		place: 'QCy%7B',
@@ -33,16 +32,11 @@ const projectSchema: ProjectSchema = {
 		scheduledAt: '_%5C%3As',
 		deadline: 'HiWj',
 		reviewState: 'OQcZ',
-		starAt: 'eVZD',
-		star: '%7CVYt',
+		pinAt: 'eVZD',
+		pinned: '%7C%7C%40r',
 		todoist: '%3Ff%5Em',
 	},
 	filterValueOfActive: 'Actief',
-	valueOfGoal: '🎯',
-	valueOfStar: '⭐',
-	colorOfStar: 'gray',
-	valueOfWaiting: '⏳',
-	colorOfWaiting: 'purple',
 	idOfArchivedOption: 'e363f213-a760-4b0f-a87c-1cd0f04624f7',
 	idOfNewNotesOption: '02376990-9e21-4503-b498-73428a3c0d23',
 };
@@ -95,7 +89,6 @@ const {
 		? '12fc046759aa4bc188398a60f0cc0b28'
 		: undefined,
 	recurringSymbol: '🔄',
-	postponedSymbol: '⏸',
 });
 
 const {prepare: prepareNotes, stage: stageNotes} = createNoteSyncer({

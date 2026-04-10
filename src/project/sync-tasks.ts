@@ -21,7 +21,6 @@ export type ConfigProps = {
 	schema: ProjectSchema;
 	onlySyncThisArea?: string;
 	recurringSymbol: string;
-	postponedSymbol: string;
 };
 
 export function createTaskSyncer(props: ConfigProps) {
@@ -135,7 +134,7 @@ export function createTaskSyncer(props: ConfigProps) {
 					areaId: projectsAreaMap.get(task.project_id),
 					verb: task.labels.find(label => labels.verbs.has(label)),
 					places: task.labels.filter(label => labels.places.has(label)),
-					waitingForDate: task.due?.date ? new Date(task.due?.date) : undefined,
+					scheduledAt: task.due?.date ? new Date(task.due?.date) : undefined,
 					deadline: task.deadline?.date
 						? new Date(task.deadline.date)
 						: undefined,
@@ -286,49 +285,40 @@ export function createTaskSyncer(props: ConfigProps) {
 		);
 
 	function transformToDTO(
-		{id: _id, markdownName, properties, icon}: NotionProject,
+		{id: _id, markdownName, properties}: NotionProject,
 		tasks: TodoistSyncData
 	): TaskDTO {
 		const id = normalizeId(_id);
 		const todoistData = tasks.synced.get(id);
 		const people = properties.People?.formula;
-		const waitingForDate = properties.ScheduledAt?.date
+		const scheduledAt = properties.ScheduledAt?.date
 			? new Date(properties.ScheduledAt.date.start)
 			: undefined;
-		const starAt = properties.StarAt?.date
-			? new Date(properties.StarAt.date.start)
+		const pinAt = properties.PinAt?.date
+			? new Date(properties.PinAt.date.start)
 			: undefined;
+		const waitingForDate = extractWaitingDate(properties.Waiting?.rich_text ?? []);
 		const deadline = properties.Deadline?.date
 			? new Date(properties.Deadline.date.start)
 			: undefined;
 		return {
 			id,
-			icon,
 			name: appifyNotionLinks(markdownName ?? ''),
 			parents: getRelationIds(properties.Parent) ?? [],
 			areas: getRelationIds(properties.Areas) ?? [],
 			people: people?.type === 'string' ? people?.string?.split(',') ?? [] : [],
 			places: properties.Places?.multi_select?.map(({name}) => name) ?? [],
 			verb: properties.Verb?.select?.name,
+			scheduledAt,
+			pinAt,
 			waitingForDate,
-			isPostponed: checkPostponed(properties, waitingForDate),
-			starAt,
-			star: properties.Star?.select?.name,
+			pinned: properties.Pinned?.checkbox ?? false,
 			deadline,
 			children: [],
 			todoistData,
 			notionData: properties,
 		};
 	}
-
-	const checkPostponed = (
-		properties: NotionProject['properties'],
-		waitingForDate: Date | undefined
-	) =>
-		(properties['@Postponed']?.formula?.type === 'boolean'
-			? Boolean(properties['@Postponed']?.formula.boolean)
-			: false) ||
-		(Boolean(properties.Waiting?.rich_text.length) && !waitingForDate);
 
 	function mapToHierarchy(projects: Map<string, TaskDTO>) {
 		const root = new Map<string, TaskDTO[]>();
@@ -374,25 +364,12 @@ export function createTaskSyncer(props: ConfigProps) {
 			parentInfo.areas.sort().join() !== task.areas.sort().join();
 		if (areasDiffer) notion.fixTaskArea(task.id, parentInfo.areas);
 
-		// Star syncing
+		// Pinned syncing
 
-		if (task.star) {
-			if (task.starAt) {
-				if (task.starAt <= new Date()) notion.starTask(task.id, task.icon);
-				else if (task.star !== props.schema.valueOfWaiting)
-					notion.starTaskAsWaiting(task.id, task.icon);
-			}
-
-			const taskIsStarredAndPostponed =
-				task.star !== props.schema.valueOfWaiting && task.isPostponed;
-			const taskIsStarredAsWaitingAndNoLongerPostponed =
-				task.star === props.schema.valueOfWaiting &&
-				!task.starAt &&
-				!task.isPostponed;
-			if (taskIsStarredAndPostponed)
-				notion.starTaskAsWaiting(task.id, task.icon);
-			else if (taskIsStarredAsWaitingAndNoLongerPostponed)
-				notion.starTaskAsGoal(task.id, task.icon);
+		if (task.pinAt && task.pinAt <= new Date()) {
+			notion.pinTask(task.id);
+		} else if (task.waitingForDate && task.waitingForDate <= new Date()) {
+			notion.pinTaskFromWaiting(task.id);
 		}
 
 		// Syncing between Todoist and Notion
@@ -402,8 +379,8 @@ export function createTaskSyncer(props: ConfigProps) {
 			if (action.includes(SyncAction.Create)) {
 				id = todoist.createTask(
 					{
-						content: prefixNameWithPostponed(task.name, task.isPostponed),
-						date: task.waitingForDate,
+						content: task.name,
+						date: task.scheduledAt,
 						deadline: task.deadline,
 						...parentInfo,
 						labels: generateLabelsTodoistShouldHave(task),
@@ -424,12 +401,9 @@ export function createTaskSyncer(props: ConfigProps) {
 				todoist.updateTask(
 					id,
 					{
-						content: prefixNameWithPostponed(
-							removePrefixes(task.name),
-							task.isPostponed
-						),
+						content: removePrefixes(task.name),
 						labels: generateLabelsTodoistShouldHave(task),
-						date: task.waitingForDate,
+						date: task.scheduledAt,
 						deadline: task.deadline,
 					},
 					{notionId: task.id, todoistCommentId: td.syncCommentId}
@@ -444,7 +418,7 @@ export function createTaskSyncer(props: ConfigProps) {
 						),
 						verb: td.labels.find(label => labels.verbs.has(label)),
 						places: td.labels.filter(label => labels.places.has(label)),
-						waitingForDate: td.due?.date ? new Date(td.due?.date) : undefined,
+						scheduledAt: td.due?.date ? new Date(td.due?.date) : undefined,
 						deadline: td.deadline?.date
 							? new Date(td.deadline.date)
 							: undefined,
@@ -475,21 +449,14 @@ export function createTaskSyncer(props: ConfigProps) {
 		isRecurring?: boolean
 	): string => `${isRecurring ? props.recurringSymbol + ' ' : ''}${name}`;
 
-	const prefixNameWithPostponed = (
-		name: string,
-		isPostponed?: boolean
-	): string => `${isPostponed ? props.postponedSymbol + ' ' : ''}${name}`;
-
 	const removePrefixes = (name: string) =>
-		name
-			.replace(new RegExp(`^${props.recurringSymbol} `), '')
-			.replace(new RegExp(`^${props.postponedSymbol} `), '')
-			.trim();
+		name.replace(new RegExp(`^${props.recurringSymbol} `), '').trim();
 
-	const generateLabelsTodoistShouldHave = (task: TaskDTO) =>
-		task.isPostponed
-			? []
-			: [...(task.verb ? [task.verb] : []), ...task.places, ...task.people];
+	const generateLabelsTodoistShouldHave = (task: TaskDTO) => [
+		...(task.verb ? [task.verb] : []),
+		...task.places,
+		...task.people,
+	];
 
 	const determineTaskActions = (
 		task: TaskDTO,
@@ -505,8 +472,7 @@ export function createTaskSyncer(props: ConfigProps) {
 			const td = task.todoistData;
 			if (!areTasksEqual(task, td)) {
 				const isAlteredInTodoist =
-					(td.contentHash !== td.syncStamp?.hash || td.due?.is_recurring) &&
-					!task.isPostponed;
+					td.contentHash !== td.syncStamp?.hash || td.due?.is_recurring;
 				actions.push(
 					isAlteredInTodoist ? SyncAction.UpdateInNotion : SyncAction.Update
 				);
@@ -531,7 +497,7 @@ export function createTaskSyncer(props: ConfigProps) {
 	const areTasksEqual = (task: TaskDTO, todoistData: ApiTask) =>
 		!isDateChanged(task, todoistData) &&
 		!isDeadlineChanged(task, todoistData) &&
-		prefixNameWithPostponed(task.name.trim(), task.isPostponed) ===
+		task.name.trim() ===
 			prefixNameWithRecurring(
 				todoistData.content.trim(),
 				todoistData.due?.is_recurring
@@ -540,8 +506,8 @@ export function createTaskSyncer(props: ConfigProps) {
 			generateLabelsTodoistShouldHave(task).sort().join();
 
 	const isDateChanged = (task: TaskDTO, todoistData: ApiTask) =>
-		(task.waitingForDate
-			? makeIsoScheduledString(task.waitingForDate, false)
+		(task.scheduledAt
+			? makeIsoScheduledString(task.scheduledAt, false)
 			: undefined) !== todoistData.due?.date;
 
 	const isDeadlineChanged = (task: TaskDTO, todoistData: ApiTask) =>
@@ -580,17 +546,16 @@ export function createTaskSyncer(props: ConfigProps) {
 
 	type TaskDTO = {
 		id: string;
-		icon: NotionProject['icon'];
 		name: string;
 		parents: string[];
 		areas: string[];
 		verb: string | undefined;
 		people: string[];
 		places: string[];
-		isPostponed?: boolean;
+		scheduledAt?: Date;
+		pinAt?: Date;
 		waitingForDate?: Date;
-		starAt?: Date;
-		star?: string;
+		pinned: boolean;
 		deadline?: Date;
 		children: TaskDTO[];
 		todoistData?: SyncedTask;
@@ -604,10 +569,6 @@ export function createTaskSyncer(props: ConfigProps) {
 	> & {areas: string[]};
 
 	const taskSchema = defineSchema({
-		'@Postponed': {
-			type: 'formula',
-			id: props.schema.fields.isPostponed,
-		},
 		Name: {type: 'title', id: 'title'},
 		Parent: {type: 'relation', id: props.schema.fields.parent},
 		Areas: {type: 'relation', id: props.schema.fields.areas},
@@ -617,8 +578,8 @@ export function createTaskSyncer(props: ConfigProps) {
 		Waiting: {type: 'rich_text', id: props.schema.fields.waiting},
 		ScheduledAt: {type: 'date', id: props.schema.fields.scheduledAt},
 		Deadline: {type: 'date', id: props.schema.fields.deadline},
-		StarAt: {type: 'date', id: props.schema.fields.starAt},
-		Star: {type: 'select', id: props.schema.fields.star},
+		PinAt: {type: 'date', id: props.schema.fields.pinAt},
+		Pinned: {type: 'checkbox', id: props.schema.fields.pinned},
 	});
 
 	//--------------------------------------------------------------------------------
@@ -626,4 +587,24 @@ export function createTaskSyncer(props: ConfigProps) {
 	//--------------------------------------------------------------------------------
 
 	return {prepare, stage, rehashAllTodoistTasks};
+}
+
+/**
+ * Returns the date from the Waiting rich-text field if it contains exactly one
+ * date mention (and nothing else). Plain-text values are for the user only and
+ * are intentionally ignored by the syncer.
+ */
+function extractWaitingDate(
+	richText: Array<{
+		type: string;
+		mention?: {type: string; date?: {start: string}};
+	}>
+): Date | undefined {
+	if (richText.length !== 1) return undefined;
+	const item = richText[0];
+	if (item?.type !== 'mention') return undefined;
+	if (item.mention?.type !== 'date') return undefined;
+	const start = item.mention.date?.start;
+	if (!start) return undefined;
+	return new Date(start);
 }

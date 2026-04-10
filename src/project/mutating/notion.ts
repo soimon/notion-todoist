@@ -1,8 +1,7 @@
-import {extractIdFromLink, hasLinks, isIconProp, NotionIconProp} from '@lib/notion';
+import {extractIdFromLink, hasLinks} from '@lib/notion';
 import {runLogged} from '@lib/utils/dev';
 import {makeIsoScheduledString} from '@lib/utils/time';
 import {Client} from '@notionhq/client';
-import {PageObjectResponse} from '@notionhq/client/build/src/api-endpoints';
 import {markdownToBlocks} from '@tryfabric/martian';
 import {SyncPair} from './todoist';
 
@@ -67,7 +66,7 @@ export class NotionMutationQueue {
 			parentId?: string;
 			verb?: string;
 			places: string[];
-			waitingForDate?: Date;
+			scheduledAt?: Date;
 			deadline?: Date;
 		},
 		pair: NewPairData
@@ -92,9 +91,9 @@ export class NotionMutationQueue {
 					...(data.verb && {
 						[this.projectSchema.fields.verb]: {select: {name: data.verb}},
 					}),
-					...(data.waitingForDate && {
+					...(data.scheduledAt && {
 						[this.projectSchema.fields.scheduledAt]: {
-							date: {start: makeIsoScheduledString(data.waitingForDate, false)},
+							date: {start: makeIsoScheduledString(data.scheduledAt, false)},
 						},
 					}),
 					...(data.deadline && {
@@ -124,7 +123,7 @@ export class NotionMutationQueue {
 			name: string;
 			verb?: string;
 			places: string[];
-			waitingForDate?: Date;
+			scheduledAt?: Date;
 			deadline?: Date;
 		},
 		pair: ExistingPairData
@@ -152,8 +151,8 @@ export class NotionMutationQueue {
 
 						// Scheduled at date
 						[this.projectSchema.fields.scheduledAt]: {
-							date: data.waitingForDate
-								? {start: makeIsoScheduledString(data.waitingForDate, false)}
+							date: data.scheduledAt
+								? {start: makeIsoScheduledString(data.scheduledAt, false)}
 								: null,
 						},
 
@@ -246,108 +245,46 @@ export class NotionMutationQueue {
 		);
 	}
 
-	starTask(id: string, icon: PageObjectResponse['icon']) {
+	pinTask(id: string) {
 		this.taskCounters.update++;
 		this.operations.push(
 			async notion =>
 				await notion.pages.update({
 					page_id: id,
-					icon: getIconWithUpdatedColorOrUndefined(
-						icon,
-						this.projectSchema.colorOfStar
-					),
 					properties: {
-						[this.projectSchema.fields.star]: {
-							type: 'select',
-							select: {name: this.projectSchema.valueOfStar},
+						[this.projectSchema.fields.pinned]: {
+							type: 'checkbox',
+							checkbox: true,
 						},
-						[this.projectSchema.fields.starAt]: {
+						[this.projectSchema.fields.pinAt]: {
 							type: 'date',
 							date: null,
+						},
+					},
+				})
+		);
+	}
+
+	pinTaskFromWaiting(id: string) {
+		this.taskCounters.update++;
+		this.operations.push(
+			async notion =>
+				await notion.pages.update({
+					page_id: id,
+					properties: {
+						[this.projectSchema.fields.pinned]: {
+							type: 'checkbox',
+							checkbox: true,
 						},
 						[this.projectSchema.fields.waiting]: {
 							type: 'rich_text',
 							rich_text: [],
-						},
-						[this.projectSchema.fields.scheduledAt]: {
-							type: 'date',
-							date: null,
-						},
-					},
-				})
-		);
-	}
-
-	starTaskAsWaiting(id: string, icon: PageObjectResponse['icon']) {
-		this.taskCounters.update++;
-		this.operations.push(
-			async notion =>
-				await notion.pages.update({
-					page_id: id,
-					icon: getIconWithUpdatedColorOrUndefined(
-						icon,
-						this.projectSchema.colorOfWaiting
-					),
-					properties: {
-						[this.projectSchema.fields.star]: {
-							type: 'select',
-							select: {name: this.projectSchema.valueOfWaiting},
-						},
-					},
-				})
-		);
-	}
-
-	starTaskAsGoal(id: string, icon: PageObjectResponse['icon']) {
-		this.taskCounters.update++;
-		this.operations.push(
-			async notion =>
-				await notion.pages.update({
-					page_id: id,
-					icon: getIconWithUpdatedColorOrUndefined(
-						icon,
-						this.projectSchema.colorOfStar
-					),
-					properties: {
-						[this.projectSchema.fields.star]: {
-							type: 'select',
-							select: {name: this.projectSchema.valueOfGoal},
 						},
 					},
 				})
 		);
 	}
 }
-
-const getIconWithUpdatedColorOrUndefined = (
-	icon: PageObjectResponse['icon'],
-	color: string
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-): any => {
-	if (
-		icon &&
-		icon.type === 'external' &&
-		icon.external.url.startsWith('https://www.notion.so/icons/')
-	) {
-		return {
-			type: 'external',
-			external: {
-				url: icon.external.url.replace(
-					/(https:\/\/www.notion.so\/icons\/[a-zA-Z0-9-]+_)(.*?)(\.svg)/,
-					`$1${color}$3`
-				),
-			},
-		} as const;
-	}
-	if (isIconProp(icon as unknown)) {
-		const iconProp = icon as unknown as NotionIconProp;
-		return {
-			type: 'icon',
-			icon: {name: iconProp.icon.name, color},
-		} as NotionIconProp;
-	}
-	return undefined;
-};
 
 function formatTitle(text: string) {
 	if (hasLinks(text)) {
@@ -381,7 +318,6 @@ export type ProjectSchema = {
 	database: string;
 	fields: Readonly<{
 		archivedState: string;
-		isPostponed: string;
 		parent: string;
 		areas: string;
 		place: string;
@@ -391,17 +327,12 @@ export type ProjectSchema = {
 		scheduledAt: string;
 		deadline: string;
 		reviewState: string;
-		starAt: string;
-		star: string;
+		pinAt: string;
+		pinned: string;
 		todoist: string;
 	}>;
 	idOfArchivedOption: string;
 	idOfNewNotesOption: string;
-	valueOfGoal: string;
-	valueOfStar: string;
-	colorOfStar: string;
-	valueOfWaiting: string;
-	colorOfWaiting: string;
 	filterValueOfActive: string;
 };
 
