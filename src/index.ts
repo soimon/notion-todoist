@@ -33,7 +33,7 @@ const projectSchema: ProjectSchema = {
 		deadline: 'HiWj',
 		reviewState: 'OQcZ',
 		pinAt: 'eVZD',
-		pinned: 'PINNED_PROPERTY_ID', // TODO: Replace with the actual Notion property ID
+		pinned: '%7C%7C%40r',
 		todoist: '%3Ff%5Em',
 	},
 	filterValueOfActive: 'Actief',
