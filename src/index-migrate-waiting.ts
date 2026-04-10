@@ -18,8 +18,7 @@ const POSTPONED_SYMBOL = '⏸';
 
 async function migrate() {
 	if (!process.env.TODOIST_TOKEN) {
-		console.error('Error: TODOIST_TOKEN environment variable is not set.');
-		process.exit(1);
+		throw new Error('TODOIST_TOKEN environment variable is not set.');
 	}
 
 	const todoist = new TodoistSyncApi(process.env.TODOIST_TOKEN);

@@ -297,6 +297,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		const pinAt = properties.PinAt?.date
 			? new Date(properties.PinAt.date.start)
 			: undefined;
+		const waitingAt = extractWaitingDate(properties.Waiting?.rich_text ?? []);
 		const deadline = properties.Deadline?.date
 			? new Date(properties.Deadline.date.start)
 			: undefined;
@@ -310,6 +311,7 @@ export function createTaskSyncer(props: ConfigProps) {
 			verb: properties.Verb?.select?.name,
 			waitingForDate,
 			pinAt,
+			waitingAt,
 			pinned: properties.Pinned?.checkbox ?? false,
 			deadline,
 			children: [],
@@ -366,6 +368,8 @@ export function createTaskSyncer(props: ConfigProps) {
 
 		if (task.pinAt && task.pinAt <= new Date()) {
 			notion.pinTask(task.id);
+		} else if (task.waitingAt && task.waitingAt <= new Date()) {
+			notion.pinTaskFromWaiting(task.id);
 		}
 
 		// Syncing between Todoist and Notion
@@ -550,6 +554,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		places: string[];
 		waitingForDate?: Date;
 		pinAt?: Date;
+		waitingAt?: Date;
 		pinned: boolean;
 		deadline?: Date;
 		children: TaskDTO[];
@@ -570,6 +575,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		Places: {type: 'multi_select', id: props.schema.fields.place},
 		People: {type: 'formula', id: props.schema.fields.people},
 		Verb: {type: 'select', id: props.schema.fields.verb},
+		Waiting: {type: 'rich_text', id: props.schema.fields.waiting},
 		ScheduledAt: {type: 'date', id: props.schema.fields.scheduledAt},
 		Deadline: {type: 'date', id: props.schema.fields.deadline},
 		PinAt: {type: 'date', id: props.schema.fields.pinAt},
@@ -581,4 +587,24 @@ export function createTaskSyncer(props: ConfigProps) {
 	//--------------------------------------------------------------------------------
 
 	return {prepare, stage, rehashAllTodoistTasks};
+}
+
+/**
+ * Returns the date from the Waiting rich-text field if it contains exactly one
+ * date mention (and nothing else). Plain-text values are for the user only and
+ * are intentionally ignored by the syncer.
+ */
+function extractWaitingDate(
+	richText: Array<{
+		type: string;
+		mention?: {type: string; date?: {start: string}};
+	}>
+): Date | undefined {
+	if (richText.length !== 1) return undefined;
+	const item = richText[0];
+	if (item?.type !== 'mention') return undefined;
+	if (item.mention?.type !== 'date') return undefined;
+	const start = item.mention.date?.start;
+	if (!start) return undefined;
+	return new Date(start);
 }

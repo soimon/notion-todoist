@@ -264,6 +264,26 @@ export class NotionMutationQueue {
 				})
 		);
 	}
+
+	pinTaskFromWaiting(id: string) {
+		this.taskCounters.update++;
+		this.operations.push(
+			async notion =>
+				await notion.pages.update({
+					page_id: id,
+					properties: {
+						[this.projectSchema.fields.pinned]: {
+							type: 'checkbox',
+							checkbox: true,
+						},
+						[this.projectSchema.fields.waiting]: {
+							type: 'rich_text',
+							rich_text: [],
+						},
+					},
+				})
+		);
+	}
 }
 
 function formatTitle(text: string) {
@@ -303,6 +323,7 @@ export type ProjectSchema = {
 		place: string;
 		people: string;
 		verb: string;
+		waiting: string;
 		scheduledAt: string;
 		deadline: string;
 		reviewState: string;
