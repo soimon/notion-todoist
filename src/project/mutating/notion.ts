@@ -66,7 +66,7 @@ export class NotionMutationQueue {
 			parentId?: string;
 			verb?: string;
 			places: string[];
-			waitingForDate?: Date;
+			scheduledAt?: Date;
 			deadline?: Date;
 		},
 		pair: NewPairData
@@ -91,9 +91,9 @@ export class NotionMutationQueue {
 					...(data.verb && {
 						[this.projectSchema.fields.verb]: {select: {name: data.verb}},
 					}),
-					...(data.waitingForDate && {
+					...(data.scheduledAt && {
 						[this.projectSchema.fields.scheduledAt]: {
-							date: {start: makeIsoScheduledString(data.waitingForDate, false)},
+							date: {start: makeIsoScheduledString(data.scheduledAt, false)},
 						},
 					}),
 					...(data.deadline && {
@@ -123,7 +123,7 @@ export class NotionMutationQueue {
 			name: string;
 			verb?: string;
 			places: string[];
-			waitingForDate?: Date;
+			scheduledAt?: Date;
 			deadline?: Date;
 		},
 		pair: ExistingPairData
@@ -151,8 +151,8 @@ export class NotionMutationQueue {
 
 						// Scheduled at date
 						[this.projectSchema.fields.scheduledAt]: {
-							date: data.waitingForDate
-								? {start: makeIsoScheduledString(data.waitingForDate, false)}
+							date: data.scheduledAt
+								? {start: makeIsoScheduledString(data.scheduledAt, false)}
 								: null,
 						},
 

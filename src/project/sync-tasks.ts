@@ -134,7 +134,7 @@ export function createTaskSyncer(props: ConfigProps) {
 					areaId: projectsAreaMap.get(task.project_id),
 					verb: task.labels.find(label => labels.verbs.has(label)),
 					places: task.labels.filter(label => labels.places.has(label)),
-					waitingForDate: task.due?.date ? new Date(task.due?.date) : undefined,
+					scheduledAt: task.due?.date ? new Date(task.due?.date) : undefined,
 					deadline: task.deadline?.date
 						? new Date(task.deadline.date)
 						: undefined,
@@ -291,13 +291,13 @@ export function createTaskSyncer(props: ConfigProps) {
 		const id = normalizeId(_id);
 		const todoistData = tasks.synced.get(id);
 		const people = properties.People?.formula;
-		const waitingForDate = properties.ScheduledAt?.date
+		const scheduledAt = properties.ScheduledAt?.date
 			? new Date(properties.ScheduledAt.date.start)
 			: undefined;
 		const pinAt = properties.PinAt?.date
 			? new Date(properties.PinAt.date.start)
 			: undefined;
-		const waitingAt = extractWaitingDate(properties.Waiting?.rich_text ?? []);
+		const waitingForDate = extractWaitingDate(properties.Waiting?.rich_text ?? []);
 		const deadline = properties.Deadline?.date
 			? new Date(properties.Deadline.date.start)
 			: undefined;
@@ -309,9 +309,9 @@ export function createTaskSyncer(props: ConfigProps) {
 			people: people?.type === 'string' ? people?.string?.split(',') ?? [] : [],
 			places: properties.Places?.multi_select?.map(({name}) => name) ?? [],
 			verb: properties.Verb?.select?.name,
-			waitingForDate,
+			scheduledAt,
 			pinAt,
-			waitingAt,
+			waitingForDate,
 			pinned: properties.Pinned?.checkbox ?? false,
 			deadline,
 			children: [],
@@ -368,7 +368,7 @@ export function createTaskSyncer(props: ConfigProps) {
 
 		if (task.pinAt && task.pinAt <= new Date()) {
 			notion.pinTask(task.id);
-		} else if (task.waitingAt && task.waitingAt <= new Date()) {
+		} else if (task.waitingForDate && task.waitingForDate <= new Date()) {
 			notion.pinTaskFromWaiting(task.id);
 		}
 
@@ -380,7 +380,7 @@ export function createTaskSyncer(props: ConfigProps) {
 				id = todoist.createTask(
 					{
 						content: task.name,
-						date: task.waitingForDate,
+						date: task.scheduledAt,
 						deadline: task.deadline,
 						...parentInfo,
 						labels: generateLabelsTodoistShouldHave(task),
@@ -403,7 +403,7 @@ export function createTaskSyncer(props: ConfigProps) {
 					{
 						content: removePrefixes(task.name),
 						labels: generateLabelsTodoistShouldHave(task),
-						date: task.waitingForDate,
+						date: task.scheduledAt,
 						deadline: task.deadline,
 					},
 					{notionId: task.id, todoistCommentId: td.syncCommentId}
@@ -418,7 +418,7 @@ export function createTaskSyncer(props: ConfigProps) {
 						),
 						verb: td.labels.find(label => labels.verbs.has(label)),
 						places: td.labels.filter(label => labels.places.has(label)),
-						waitingForDate: td.due?.date ? new Date(td.due?.date) : undefined,
+						scheduledAt: td.due?.date ? new Date(td.due?.date) : undefined,
 						deadline: td.deadline?.date
 							? new Date(td.deadline.date)
 							: undefined,
@@ -506,8 +506,8 @@ export function createTaskSyncer(props: ConfigProps) {
 			generateLabelsTodoistShouldHave(task).sort().join();
 
 	const isDateChanged = (task: TaskDTO, todoistData: ApiTask) =>
-		(task.waitingForDate
-			? makeIsoScheduledString(task.waitingForDate, false)
+		(task.scheduledAt
+			? makeIsoScheduledString(task.scheduledAt, false)
 			: undefined) !== todoistData.due?.date;
 
 	const isDeadlineChanged = (task: TaskDTO, todoistData: ApiTask) =>
@@ -552,9 +552,9 @@ export function createTaskSyncer(props: ConfigProps) {
 		verb: string | undefined;
 		people: string[];
 		places: string[];
-		waitingForDate?: Date;
+		scheduledAt?: Date;
 		pinAt?: Date;
-		waitingAt?: Date;
+		waitingForDate?: Date;
 		pinned: boolean;
 		deadline?: Date;
 		children: TaskDTO[];
