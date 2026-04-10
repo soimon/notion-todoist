@@ -32,8 +32,6 @@ To make sure not to lose any data, tasks are not deleted in Notion when they are
 Todoist allows for recurring tasks. Notion does not. When a task is made recurring in Todoist, the title in Notion will be appended with 🔄. From that point on, the task will always be synced from Todoist to Notion.
 ### Postponed tasks
 Postponed tasks are tasks with a `waiting for` in Todoist that are not reliant on a date. They need to be manually checked. Or, they have `later/maybe` as the verb.
-
-To reduce clutter in Todoist, tasks like these (that are not helpful on a daily basis) get their name prefixed with ⏸, and all their labels removed. From that point on, the task will always be synced from Notion to Todoist until they are not postponed anymore.
 ## Current limitations
 ### Attachments in comments are ignored
 Ideally, they would be added to the Notion page. This is currently impossible due to:

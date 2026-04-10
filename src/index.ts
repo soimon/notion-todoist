@@ -23,13 +23,11 @@ const projectSchema: ProjectSchema = {
 	database: process.env.NOTION_DB_PROJECTS,
 	fields: {
 		archivedState: 'GNpW',
-		isPostponed: '%3A%3FZe',
 		parent: '%7CjQZ',
 		areas: 'fdjt',
 		place: 'QCy%7B',
 		people: 'F%7DnR',
 		verb: '%7BWG%3C',
-		waiting: 'yVIB',
 		scheduledAt: '_%5C%3As',
 		deadline: 'HiWj',
 		reviewState: 'OQcZ',
@@ -90,7 +88,6 @@ const {
 		? '12fc046759aa4bc188398a60f0cc0b28'
 		: undefined,
 	recurringSymbol: '🔄',
-	postponedSymbol: '⏸',
 });
 
 const {prepare: prepareNotes, stage: stageNotes} = createNoteSyncer({

@@ -21,7 +21,6 @@ export type ConfigProps = {
 	schema: ProjectSchema;
 	onlySyncThisArea?: string;
 	recurringSymbol: string;
-	postponedSymbol: string;
 };
 
 export function createTaskSyncer(props: ConfigProps) {
@@ -310,7 +309,6 @@ export function createTaskSyncer(props: ConfigProps) {
 			places: properties.Places?.multi_select?.map(({name}) => name) ?? [],
 			verb: properties.Verb?.select?.name,
 			waitingForDate,
-			isPostponed: checkPostponed(properties, waitingForDate),
 			pinAt,
 			pinned: properties.Pinned?.checkbox ?? false,
 			deadline,
@@ -319,15 +317,6 @@ export function createTaskSyncer(props: ConfigProps) {
 			notionData: properties,
 		};
 	}
-
-	const checkPostponed = (
-		properties: NotionProject['properties'],
-		waitingForDate: Date | undefined
-	) =>
-		(properties['@Postponed']?.formula?.type === 'boolean'
-			? Boolean(properties['@Postponed']?.formula.boolean)
-			: false) ||
-		(Boolean(properties.Waiting?.rich_text.length) && !waitingForDate);
 
 	function mapToHierarchy(projects: Map<string, TaskDTO>) {
 		const root = new Map<string, TaskDTO[]>();
@@ -386,7 +375,7 @@ export function createTaskSyncer(props: ConfigProps) {
 			if (action.includes(SyncAction.Create)) {
 				id = todoist.createTask(
 					{
-						content: prefixNameWithPostponed(task.name, task.isPostponed),
+						content: task.name,
 						date: task.waitingForDate,
 						deadline: task.deadline,
 						...parentInfo,
@@ -408,10 +397,7 @@ export function createTaskSyncer(props: ConfigProps) {
 				todoist.updateTask(
 					id,
 					{
-						content: prefixNameWithPostponed(
-							removePrefixes(task.name),
-							task.isPostponed
-						),
+						content: removePrefixes(task.name),
 						labels: generateLabelsTodoistShouldHave(task),
 						date: task.waitingForDate,
 						deadline: task.deadline,
@@ -459,21 +445,14 @@ export function createTaskSyncer(props: ConfigProps) {
 		isRecurring?: boolean
 	): string => `${isRecurring ? props.recurringSymbol + ' ' : ''}${name}`;
 
-	const prefixNameWithPostponed = (
-		name: string,
-		isPostponed?: boolean
-	): string => `${isPostponed ? props.postponedSymbol + ' ' : ''}${name}`;
-
 	const removePrefixes = (name: string) =>
-		name
-			.replace(new RegExp(`^${props.recurringSymbol} `), '')
-			.replace(new RegExp(`^${props.postponedSymbol} `), '')
-			.trim();
+		name.replace(new RegExp(`^${props.recurringSymbol} `), '').trim();
 
-	const generateLabelsTodoistShouldHave = (task: TaskDTO) =>
-		task.isPostponed
-			? []
-			: [...(task.verb ? [task.verb] : []), ...task.places, ...task.people];
+	const generateLabelsTodoistShouldHave = (task: TaskDTO) => [
+		...(task.verb ? [task.verb] : []),
+		...task.places,
+		...task.people,
+	];
 
 	const determineTaskActions = (
 		task: TaskDTO,
@@ -489,8 +468,7 @@ export function createTaskSyncer(props: ConfigProps) {
 			const td = task.todoistData;
 			if (!areTasksEqual(task, td)) {
 				const isAlteredInTodoist =
-					(td.contentHash !== td.syncStamp?.hash || td.due?.is_recurring) &&
-					!task.isPostponed;
+					td.contentHash !== td.syncStamp?.hash || td.due?.is_recurring;
 				actions.push(
 					isAlteredInTodoist ? SyncAction.UpdateInNotion : SyncAction.Update
 				);
@@ -515,7 +493,7 @@ export function createTaskSyncer(props: ConfigProps) {
 	const areTasksEqual = (task: TaskDTO, todoistData: ApiTask) =>
 		!isDateChanged(task, todoistData) &&
 		!isDeadlineChanged(task, todoistData) &&
-		prefixNameWithPostponed(task.name.trim(), task.isPostponed) ===
+		task.name.trim() ===
 			prefixNameWithRecurring(
 				todoistData.content.trim(),
 				todoistData.due?.is_recurring
@@ -570,7 +548,6 @@ export function createTaskSyncer(props: ConfigProps) {
 		verb: string | undefined;
 		people: string[];
 		places: string[];
-		isPostponed?: boolean;
 		waitingForDate?: Date;
 		pinAt?: Date;
 		pinned: boolean;
@@ -587,17 +564,12 @@ export function createTaskSyncer(props: ConfigProps) {
 	> & {areas: string[]};
 
 	const taskSchema = defineSchema({
-		'@Postponed': {
-			type: 'formula',
-			id: props.schema.fields.isPostponed,
-		},
 		Name: {type: 'title', id: 'title'},
 		Parent: {type: 'relation', id: props.schema.fields.parent},
 		Areas: {type: 'relation', id: props.schema.fields.areas},
 		Places: {type: 'multi_select', id: props.schema.fields.place},
 		People: {type: 'formula', id: props.schema.fields.people},
 		Verb: {type: 'select', id: props.schema.fields.verb},
-		Waiting: {type: 'rich_text', id: props.schema.fields.waiting},
 		ScheduledAt: {type: 'date', id: props.schema.fields.scheduledAt},
 		Deadline: {type: 'date', id: props.schema.fields.deadline},
 		PinAt: {type: 'date', id: props.schema.fields.pinAt},

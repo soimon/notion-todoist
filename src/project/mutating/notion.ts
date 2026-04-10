@@ -298,13 +298,11 @@ export type ProjectSchema = {
 	database: string;
 	fields: Readonly<{
 		archivedState: string;
-		isPostponed: string;
 		parent: string;
 		areas: string;
 		place: string;
 		people: string;
 		verb: string;
-		waiting: string;
 		scheduledAt: string;
 		deadline: string;
 		reviewState: string;
