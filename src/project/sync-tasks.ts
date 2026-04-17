@@ -366,9 +366,12 @@ export function createTaskSyncer(props: ConfigProps) {
 
 		// Pinned syncing
 
-		if (task.pinAt && task.pinAt <= new Date()) {
+		const now = new Date();
+		if (task.pinned && task.pinAt && task.pinAt > now) {
+			notion.unpinTask(task.id);
+		} else if (task.pinAt && task.pinAt <= now) {
 			notion.pinTask(task.id);
-		} else if (task.waitingForDate && task.waitingForDate <= new Date()) {
+		} else if (task.waitingForDate && task.waitingForDate <= now) {
 			notion.pinTaskFromWaiting(task.id);
 		}
 

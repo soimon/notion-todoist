@@ -265,6 +265,22 @@ export class NotionMutationQueue {
 		);
 	}
 
+	unpinTask(id: string) {
+		this.taskCounters.update++;
+		this.operations.push(
+			async notion =>
+				await notion.pages.update({
+					page_id: id,
+					properties: {
+						[this.projectSchema.fields.pinned]: {
+							type: 'checkbox',
+							checkbox: false,
+						},
+					},
+				})
+		);
+	}
+
 	pinTaskFromWaiting(id: string) {
 		this.taskCounters.update++;
 		this.operations.push(
