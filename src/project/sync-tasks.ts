@@ -369,8 +369,14 @@ export function createTaskSyncer(props: ConfigProps) {
 		const now = new Date();
 		if (task.pinned && task.pinAt && task.pinAt > now) {
 			notion.unpinTask(task.id);
-		} else if (task.pinAt && task.pinAt <= now) {
+		} else if (!task.pinned && task.pinAt && task.pinAt <= now) {
 			notion.pinTask(task.id);
+		} else if (
+			task.pinned &&
+			task.pinAt &&
+			shouldClearPinAtAfterOneDay(task.pinAt, now)
+		) {
+			notion.clearTaskPinAt(task.id);
 		} else if (task.waitingForDate && task.waitingForDate <= now) {
 			notion.pinTaskFromWaiting(task.id);
 		}
@@ -610,4 +616,10 @@ function extractWaitingDate(
 	const start = item.mention.date?.start;
 	if (!start) return undefined;
 	return new Date(start);
+}
+
+const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
+
+function shouldClearPinAtAfterOneDay(pinAt: Date, now: Date) {
+	return now.getTime() >= pinAt.getTime() + MILLISECONDS_IN_DAY;
 }

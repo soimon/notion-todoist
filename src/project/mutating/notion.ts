@@ -256,6 +256,18 @@ export class NotionMutationQueue {
 							type: 'checkbox',
 							checkbox: true,
 						},
+					},
+				})
+		);
+	}
+
+	clearTaskPinAt(id: string) {
+		this.taskCounters.update++;
+		this.operations.push(
+			async notion =>
+				await notion.pages.update({
+					page_id: id,
+					properties: {
 						[this.projectSchema.fields.pinAt]: {
 							type: 'date',
 							date: null,
