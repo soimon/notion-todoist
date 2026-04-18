@@ -64,10 +64,7 @@ export function createProjectSyncer<C extends Record<string, Color>>({
 		const areaProjectsMap = new Map<string, string>();
 
 		forEachRecord(areas, (rootProjectName, type) => {
-			const rootProjectId = resolveProjectId(
-				rootProjects[rootProjectName],
-				preparation.projects
-			);
+			const rootProjectId = todoist.resolveProjectId(rootProjects[rootProjectName]);
 			if (!rootProjectId) return;
 
 			// Sync the category projects
@@ -249,21 +246,6 @@ export function createProjectSyncer<C extends Record<string, Color>>({
 			: name !== todoistData.name || color !== todoistData.color
 			? SyncAction.Update
 			: SyncAction.Ignore;
-	}
-
-	function resolveProjectId(
-		configuredId: string | undefined,
-		projects: ApiProject[]
-	): string | undefined {
-		if (!configuredId) return undefined;
-		const exact = projects.find(project => project.id === configuredId);
-		if (exact) return exact.id;
-		const migrated = projects.find(project => project.legacy_id === configuredId);
-		if (migrated)
-			console.log(
-				`⚠️  Detected deprecated Todoist project ID ${configuredId}; using ${migrated.id} instead. Please update your environment variables.`
-			);
-		return migrated?.id ?? configuredId;
 	}
 
 	function determineAreaActions({

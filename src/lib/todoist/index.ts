@@ -29,6 +29,8 @@ export class TodoistSyncApi {
 	private loadedData: Snapshot | undefined;
 	private loadedDiff: Snapshot | undefined;
 	private latestSyncToken: string | undefined;
+	private readonly warnedLegacyIds = new Set<string>();
+	private readonly warnedMissingProjectIds = new Set<string>();
 
 	async loadAll(resourceTypes?: ResourceType[]) {
 		const {data} = await this.fetchData(resourceTypes);
@@ -156,14 +158,22 @@ export class TodoistSyncApi {
 	resolveProjectId(id: string | undefined): string | undefined {
 		if (!id) return undefined;
 		const projects = this.getProjects();
-		const exact = projects.find(project => project.id === id);
-		if (exact) return exact.id;
+		if (projects.some(project => project.id === id)) return id;
 		const migrated = projects.find(project => project.legacy_id === id);
-		if (migrated)
+		if (migrated) {
+			if (this.warnedLegacyIds.has(id)) return migrated.id;
+			this.warnedLegacyIds.add(id);
 			console.log(
 				`⚠️  Detected deprecated Todoist project ID ${id}; using ${migrated.id} instead. Please update your environment variables.`
 			);
-		return migrated?.id ?? id;
+			return migrated.id;
+		}
+		if (this.warnedMissingProjectIds.has(id)) return undefined;
+		this.warnedMissingProjectIds.add(id);
+		console.error(
+			`❌ Configured Todoist project ID ${id} was not found. Please update your environment variables with current Todoist IDs.`
+		);
+		return undefined;
 	}
 
 	//-----------------------------------------------------------------

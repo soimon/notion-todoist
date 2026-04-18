@@ -537,6 +537,9 @@ export function createTaskSyncer(props: ConfigProps) {
 		parentInfo: Pick<AddTaskArgs, 'parentId' | 'projectId' | 'sectionId'>,
 		inboxProjectId?: string
 	) => {
+		const hasNoTargetParent =
+			!parentInfo.parentId && !parentInfo.projectId && !parentInfo.sectionId;
+		if (hasNoTargetParent && !inboxProjectId) return false;
 		const todoistProjectId =
 			td.project_id === inboxProjectId
 				? undefined
