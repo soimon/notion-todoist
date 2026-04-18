@@ -153,6 +153,19 @@ export class TodoistSyncApi {
 		return this.loadedDiff;
 	}
 
+	resolveProjectId(id: string | undefined): string | undefined {
+		if (!id) return undefined;
+		const projects = this.getProjects();
+		const exact = projects.find(project => project.id === id);
+		if (exact) return exact.id;
+		const migrated = projects.find(project => project.legacy_id === id);
+		if (migrated)
+			console.log(
+				`⚠️  Detected deprecated Todoist project ID ${id}; using ${migrated.id} instead. Please update your environment variables.`
+			);
+		return migrated?.id ?? id;
+	}
+
 	//-----------------------------------------------------------------
 	// Modifiers
 	//-----------------------------------------------------------------
@@ -383,6 +396,7 @@ export type TemporaryId = string;
 export type Snapshot = {
 	projects: {
 		id: string;
+		legacy_id?: string;
 		parent_id: string;
 		name: string;
 		color: string;

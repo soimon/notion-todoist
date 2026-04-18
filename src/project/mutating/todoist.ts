@@ -170,7 +170,9 @@ export class TodoistMutationQueue {
 		parentInfo: Pick<AddTaskArgs, 'parentId' | 'projectId' | 'sectionId'>
 	) {
 		if (!parentInfo.parentId && !parentInfo.projectId && !parentInfo.sectionId)
-			parentInfo.projectId = process.env.TODOIST_PROJECT_INBOX;
+			parentInfo.projectId = this.client.resolveProjectId(
+				process.env.TODOIST_PROJECT_INBOX
+			);
 		this.client.moveTask(id, parentInfo);
 		this.taskCounters.move++;
 	}
