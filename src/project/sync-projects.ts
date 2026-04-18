@@ -64,7 +64,7 @@ export function createProjectSyncer<C extends Record<string, Color>>({
 		const areaProjectsMap = new Map<string, string>();
 
 		forEachRecord(areas, (rootProjectName, type) => {
-			const rootProjectId = rootProjects[rootProjectName];
+			const rootProjectId = todoist.resolveProjectId(rootProjects[rootProjectName]);
 			if (!rootProjectId) return;
 
 			// Sync the category projects
