@@ -374,7 +374,7 @@ export function createTaskSyncer(props: ConfigProps) {
 		} else if (
 			task.pinned &&
 			task.pinAt &&
-			shouldClearPinAtAfterAutoPin(task.pinAt, now)
+			shouldClearPinAtAfterOneDay(task.pinAt, now)
 		) {
 			notion.clearTaskPinAt(task.id);
 		} else if (task.waitingForDate && task.waitingForDate <= now) {
@@ -618,8 +618,8 @@ function extractWaitingDate(
 	return new Date(start);
 }
 
-function shouldClearPinAtAfterAutoPin(pinAt: Date, now: Date) {
-	const clearAt = new Date(pinAt);
-	clearAt.setDate(clearAt.getDate() + 1);
-	return now >= clearAt;
+const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
+
+function shouldClearPinAtAfterOneDay(pinAt: Date, now: Date) {
+	return now.getTime() >= pinAt.getTime() + MILLISECONDS_IN_DAY;
 }
