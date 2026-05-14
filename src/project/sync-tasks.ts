@@ -36,6 +36,7 @@ export function createTaskSyncer(props: ConfigProps) {
 			tasks: dev.tasks ?? todoist.getTasks(),
 			comments: todoist.getComments(),
 			incrementalTasks: incrementalTodoist.getTasks(),
+			inboxProjectId: todoist.resolveProjectId(process.env.TODOIST_PROJECT_INBOX),
 			notionTasks: await fetchVisibleNotionTasks(notion, dev.filter),
 		};
 	}
@@ -71,6 +72,7 @@ export function createTaskSyncer(props: ConfigProps) {
 			tasks,
 			notionTasks,
 			incrementalTasks,
+			inboxProjectId,
 		}: Preparation,
 		{todoist, notion}: MutationQueues
 	) {
@@ -97,7 +99,8 @@ export function createTaskSyncer(props: ConfigProps) {
 					{todoist, notion},
 					{projectId, areas: [areaId]},
 					completedTasks,
-					labels
+					labels,
+					inboxProjectId
 				);
 		}
 
@@ -346,7 +349,8 @@ export function createTaskSyncer(props: ConfigProps) {
 		{todoist, notion}: MutationQueues,
 		parentInfo: ParentInfo,
 		completedTasks: ApiTask[],
-		labels: Preparation['labels']
+		labels: Preparation['labels'],
+		inboxProjectId?: string
 	) {
 		if (task.syncChecked) return;
 		task.syncChecked = true;
@@ -354,7 +358,8 @@ export function createTaskSyncer(props: ConfigProps) {
 		const action: SyncAction[] = determineTaskActions(
 			task,
 			parentInfo,
-			completedTasks
+			completedTasks,
+			inboxProjectId
 		);
 		let id = task.todoistData?.id;
 
@@ -448,7 +453,8 @@ export function createTaskSyncer(props: ConfigProps) {
 					areas: parentInfo.areas,
 				},
 				completedTasks,
-				labels
+				labels,
+				inboxProjectId
 			)
 		);
 	}
@@ -470,7 +476,8 @@ export function createTaskSyncer(props: ConfigProps) {
 	const determineTaskActions = (
 		task: TaskDTO,
 		parentInfo: ParentInfo,
-		completedTasks: ApiTask[]
+		completedTasks: ApiTask[],
+		inboxProjectId?: string
 	) => {
 		const actions = [];
 		if (!task.todoistData) {
@@ -486,7 +493,8 @@ export function createTaskSyncer(props: ConfigProps) {
 					isAlteredInTodoist ? SyncAction.UpdateInNotion : SyncAction.Update
 				);
 			}
-			if (isSomewhereElse(td, parentInfo)) actions.push(SyncAction.Move);
+			if (isSomewhereElse(td, parentInfo, inboxProjectId))
+				actions.push(SyncAction.Move);
 		}
 
 		return actions;
@@ -526,10 +534,14 @@ export function createTaskSyncer(props: ConfigProps) {
 
 	const isSomewhereElse = (
 		td: Pick<ApiTask, 'parent_id' | 'project_id'>,
-		parentInfo: Pick<AddTaskArgs, 'parentId' | 'projectId' | 'sectionId'>
+		parentInfo: Pick<AddTaskArgs, 'parentId' | 'projectId' | 'sectionId'>,
+		inboxProjectId?: string
 	) => {
+		const hasNoTargetParent =
+			!parentInfo.parentId && !parentInfo.projectId && !parentInfo.sectionId;
+		if (hasNoTargetParent && !inboxProjectId) return false;
 		const todoistProjectId =
-			td.project_id === process.env.TODOIST_PROJECT_INBOX
+			td.project_id === inboxProjectId
 				? undefined
 				: td.project_id;
 		return (

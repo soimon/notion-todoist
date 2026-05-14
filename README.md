@@ -42,3 +42,9 @@ Ideally, they would be added to the Notion page. This is currently impossible du
 To make sure not to lose any data, comments with attachments are completely ignored and won't be deleted. The status in Notion keeps being changed to `New notes` to tell the user that there are new notes in Todoist.
 ### You can't tag people from Todoist
 This is because people are from a database in Notion. In order for this to work, the pages should be found by name.
+
+## Todoist ID migration note
+Todoist now rejects deprecated V1 IDs in write commands (`V1_ID_CANNOT_BE_USED`).
+
+This syncer now auto-resolves configured project IDs to current IDs when possible (for example `TODOIST_PROJECT_INBOX`, root area/resource project IDs).  
+If you still see migration warnings, update your stored Todoist project IDs in environment variables/secrets to the current IDs shown by Todoist.
