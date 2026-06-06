@@ -165,30 +165,12 @@ export class TodoistMutationQueue {
 		this.taskCounters.delete++;
 	}
 
-	resolveProjectId(id: string | undefined) {
-		return this.client.resolveProjectId(id);
-	}
-
 	moveTask(
 		id: string,
 		parentInfo: Pick<AddTaskArgs, 'parentId' | 'projectId' | 'sectionId'>
 	) {
-		const hadDestinationBeforeResolution = Boolean(
-			parentInfo.parentId || parentInfo.projectId || parentInfo.sectionId
-		);
-		if (!hadDestinationBeforeResolution)
-			parentInfo.projectId = this.client.resolveProjectId(
-				process.env.TODOIST_PROJECT_INBOX
-			);
-		const hasResolvedDestination = Boolean(
-			parentInfo.parentId || parentInfo.projectId || parentInfo.sectionId
-		);
-		if (!hasResolvedDestination) {
-			console.error(
-				`❌ Skipping Todoist move for task ${id}: no valid destination project/section/parent was resolved.`
-			);
-			return;
-		}
+		if (!parentInfo.parentId && !parentInfo.projectId && !parentInfo.sectionId)
+			parentInfo.projectId = process.env.TODOIST_PROJECT_INBOX;
 		this.client.moveTask(id, parentInfo);
 		this.taskCounters.move++;
 	}
