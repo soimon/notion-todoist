@@ -1,7 +1,7 @@
-import {Client} from '@notionhq/client';
+import { Client } from '@notionhq/client';
 import {
 	PageObjectResponse,
-	QueryDatabaseResponse,
+	QueryDataSourceResponse
 } from '@notionhq/client/build/src/api-endpoints';
 import {
 	NotionPage,
@@ -62,7 +62,7 @@ type QueryOptions = {
 	filter?: QueryFilters;
 };
 export type QueryFilters = Exclude<
-	Parameters<Client['databases']['query']>[0]['filter'],
+	Parameters<Client['dataSources']['query']>[0]['filter'],
 	undefined
 >;
 
@@ -80,7 +80,7 @@ async function accumulateQueryResults<TPropertiesList extends Schema>(
 	let next_cursor: string | null = null;
 	const pages: PageObjectResponse[] = [];
 	do {
-		const response: QueryDatabaseResponse = await query(
+		const response: QueryDataSourceResponse = await query(
 			options,
 			next_cursor ?? undefined
 		);
@@ -96,15 +96,15 @@ async function accumulateQueryResults<TPropertiesList extends Schema>(
 
 const query = <TPropertiesList extends Schema>(
 	{
-		database: database_id,
+		database: data_source_id,
 		filter,
 		notion,
 		schema,
 	}: QueryOptions & {schema: TPropertiesList},
 	startAt?: string
 ) =>
-	notion.databases.query({
-		database_id,
+	notion.dataSources.query({
+		data_source_id,
 		filter,
 		filter_properties: [...(getPropertyIds(schema) ?? []), 'title'],
 		page_size: 500,
@@ -115,8 +115,8 @@ export const getDatabaseSchema = async (options: {
 	notion: Client;
 	database: string;
 }): Promise<Schema> => {
-	const {properties} = await options.notion.databases.retrieve({
-		database_id: options.database,
+	const {properties} = await options.notion.dataSources.retrieve({
+		data_source_id: options.database,
 	});
 	return Object.fromEntries(Object.entries(properties).map(([k, v]) => [k, v]));
 };

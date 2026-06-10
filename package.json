@@ -1,6 +1,6 @@
 {
 	"name": "notion-todoist",
-	"version": "2.15.0",
+	"version": "3.0.0",
 	"description": "",
 	"main": "build/src/index.js",
 	"types": "build/src/index.d.ts",
@@ -35,7 +35,7 @@
 	},
 	"dependencies": {
 		"@doist/todoist-api-typescript": "^4.0.0",
-		"@notionhq/client": "^2.2.15",
+		"@notionhq/client": "^5.22.0",
 		"@tryfabric/martian": "^1.2.4",
 		"@vighnesh153/github-gist": "^0.4.4",
 		"axios": "^1.6.2",
