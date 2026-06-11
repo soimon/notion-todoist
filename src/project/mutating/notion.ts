@@ -74,7 +74,7 @@ export class NotionMutationQueue {
 		this.taskCounters.create++;
 		this.operations.push(async notion => {
 			const {id} = await notion.pages.create({
-				parent: {database_id: this.projectSchema.database},
+				parent: {data_source_id: this.projectSchema.database},
 				properties: {
 					title: {title: formatTitle(data.name)},
 					// ...{[this.projectSchema.fields.todoist]: {
@@ -115,7 +115,6 @@ export class NotionMutationQueue {
 			});
 		});
 	}
-
 
 	updateTask(
 		id: string,
