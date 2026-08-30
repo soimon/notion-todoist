@@ -375,30 +375,29 @@ export function createTaskSyncer(props: ConfigProps) {
 			notion.pinTaskFromWaiting(task.id);
 		}
 
-		// Syncing between Todoist and Notion
+		//// Syncing between Todoist and Notion
 
-		if (!id) {
-			// Create
-			if (action.includes(SyncAction.Create)) {
-				id = todoist.createTask(
-					{
-						content: task.name,
-						date: task.scheduledAt,
-						deadline: task.deadline,
-						...parentInfo,
-						labels: generateLabelsTodoistShouldHave(task),
-					},
-					{notionId: task.id}
-				);
-			}
+		// Create
+		if (action.includes(SyncAction.Create)) {
+			id = todoist.createTask(
+				{
+					content: task.name,
+					date: task.scheduledAt,
+					deadline: task.deadline,
+					...parentInfo,
+					labels: generateLabelsTodoistShouldHave(task),
+				},
+				{notionId: task.id}
+			);
+		}
 
-			// Complete
-			else if (action.includes(SyncAction.CompleteInNotion))
-				notion.completeTask(task.id);
+		// Complete
+		else if (action.includes(SyncAction.CompleteInNotion)) {
+			notion.completeTask(task.id);
 		}
 
 		// Update
-		else {
+		else if (id !== undefined) {
 			const td = task.todoistData;
 			if (action.includes(SyncAction.Update) && td)
 				todoist.updateTask(
@@ -467,10 +466,10 @@ export function createTaskSyncer(props: ConfigProps) {
 		completedTasks: ApiTask[]
 	) => {
 		const actions = [];
-		if (!task.todoistData) {
-			if (wasCompletedInTodoist(task, completedTasks))
-				actions.push(SyncAction.CompleteInNotion);
-			else if (task.name) actions.push(SyncAction.Create);
+		if (wasCompletedInTodoist(task, completedTasks))
+			actions.push(SyncAction.CompleteInNotion);
+		else if (!task.todoistData) {
+			if (task.name) actions.push(SyncAction.Create);
 		} else {
 			const td = task.todoistData;
 			if (!areTasksEqual(task, td)) {
