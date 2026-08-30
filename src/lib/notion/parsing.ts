@@ -2,7 +2,8 @@ export const extractIdFromLink = (link: string | undefined) =>
 	link && hasLinks(link)
 		? link.split(/[-/]/g).pop()?.split('#').shift()
 		: undefined;
-export const hasLinks = (text: string) => text.includes('notion.so');
+export const hasLinks = (text: string) =>
+	/notion\.so|app\.notion\.com/.test(text);
 export const extractHashFromLink = (link: string | undefined) =>
 	link && hasLinks(link) && link.includes('#')
 		? link.split('#').pop()
