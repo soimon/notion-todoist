@@ -27,22 +27,45 @@ export class TodoistSyncApi {
 	//-----------------------------------------------------------------
 
 	private loadedData: Snapshot | undefined;
-	private loadedDiff: Snapshot | undefined;
 	private latestSyncToken: string | undefined;
 
-	async loadAll(resourceTypes?: ResourceType[]) {
-		const {data} = await this.fetchData(resourceTypes);
-		return (this.loadedData = data);
-	}
+	async load({
+		sinceToken,
+		resourceTypes,
+	}: {
+		sinceToken?: string;
+		resourceTypes?: ResourceType[];
+	} = {}): Promise<void> {
+		// Full load
+		const {
+			data: fullData,
+			syncToken: fullSyncToken,
+			fullSyncDate,
+		} = await this.fetchData(resourceTypes);
 
-	async loadDiff(previousSyncToken: string, resourceTypes?: ResourceType[]) {
-		const {data, fullSync, syncToken} = await this.fetchData(
+		// Incremental load on top
+		const {data: diffData, syncToken: diffSyncToken} = await this.fetchData(
 			resourceTypes,
-			previousSyncToken
+			sinceToken ?? fullSyncToken
 		);
-		this.loadedDiff = this.mergeSnapshots(this.loadedDiff, data);
-		this.loadedData = this.mergeSnapshots(this.loadedData, this.loadedDiff);
-		return fullSync ? undefined : syncToken;
+
+		this.mergeSnapshots(fullData, diffData);
+		this.latestSyncToken = diffSyncToken ?? fullSyncToken;
+
+		// Log how much time there is between the fullSyncDate and now, in the format of hours:minutes. For a whole day, that would be more than 24 hours.
+
+		if (fullSyncDate) {
+			const fullSyncDateObj = new Date(fullSyncDate);
+			const now = new Date();
+			const diffMs = now.getTime() - fullSyncDateObj.getTime();
+			const hours = Math.floor(diffMs / (1000 * 60 * 60));
+			const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+			if (hours > 0 || minutes > 0) {
+				console.log(
+					`Full sync data was ${hours} hours and ${minutes} minutes behind`
+				);
+			}
+		}
 	}
 
 	getProjects = () => this.loadedData?.projects ?? [];
@@ -62,6 +85,7 @@ export class TodoistSyncApi {
 			project_notes,
 			sync_token,
 			full_sync,
+			full_sync_date_utc,
 		} = await this.request({
 			sync_token: sinceToken,
 			resource_types: resourceTypes ?? [
@@ -82,8 +106,12 @@ export class TodoistSyncApi {
 			projectComments: Array.isArray(project_notes) ? project_notes : [],
 			comments: Array.isArray(notes) ? notes : [],
 		};
-		this.latestSyncToken = sync_token;
-		return {data, syncToken: `${sync_token}`, fullSync: Boolean(full_sync)};
+		return {
+			data,
+			syncToken: `${sync_token}`,
+			fullSync: Boolean(full_sync),
+			fullSyncDate: full_sync_date_utc,
+		};
 	}
 
 	private async parseData(r: Response) {
@@ -108,9 +136,7 @@ export class TodoistSyncApi {
 		}
 	}
 
-	private mergeSnapshots(
-		...snapshots: (Snapshot | undefined)[]
-	): Snapshot | undefined {
+	private mergeSnapshots(...snapshots: (Snapshot | undefined)[]) {
 		const maps: Record<
 			keyof Snapshot,
 			Map<string, IterableElement<Snapshot[keyof Snapshot]>>
@@ -132,6 +158,7 @@ export class TodoistSyncApi {
 			});
 		}
 
+		snapshots.unshift(this.loadedData);
 		for (const snapshot of snapshots) {
 			if (!snapshot) continue;
 			Object.keys(maps)
@@ -139,7 +166,7 @@ export class TodoistSyncApi {
 				.forEach(k => merge(maps[k], snapshot[k]));
 		}
 
-		return Object.entries(maps).reduce(
+		this.loadedData = Object.entries(maps).reduce(
 			(acc, [k, v]) => ({...acc, [k]: [...v.values()]}),
 			{} as Snapshot
 		);
@@ -147,10 +174,6 @@ export class TodoistSyncApi {
 
 	getLatestSyncToken() {
 		return this.latestSyncToken;
-	}
-
-	getLatestSnapshot(): Readonly<Snapshot> | undefined {
-		return this.loadedDiff;
 	}
 
 	//-----------------------------------------------------------------

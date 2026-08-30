@@ -25,7 +25,7 @@ export type ConfigProps = {
 
 export function createTaskSyncer(props: ConfigProps) {
 	async function prepare(
-		{todoist, incrementalTodoist, notion}: Integrations,
+		{todoist, notion}: Integrations,
 		areaProjectsMap: Map<string, string>,
 		labels: {verbs: Set<string>; places: Set<string>}
 	) {
@@ -35,7 +35,6 @@ export function createTaskSyncer(props: ConfigProps) {
 			labels,
 			tasks: dev.tasks ?? todoist.getTasks(),
 			comments: todoist.getComments(),
-			incrementalTasks: incrementalTodoist.getTasks(),
 			notionTasks: await fetchVisibleNotionTasks(notion, dev.filter),
 		};
 	}
@@ -64,14 +63,7 @@ export function createTaskSyncer(props: ConfigProps) {
 	}
 
 	function stage(
-		{
-			areaProjectsMap,
-			labels,
-			comments,
-			tasks,
-			notionTasks,
-			incrementalTasks,
-		}: Preparation,
+		{areaProjectsMap, labels, comments, tasks, notionTasks}: Preparation,
 		{todoist, notion}: MutationQueues
 	) {
 		// Fetch and structure all information
@@ -88,7 +80,7 @@ export function createTaskSyncer(props: ConfigProps) {
 
 		// Sync recursively from root to leaf (from Notions perspective)
 
-		const completedTasks = getCompletedTasks(incrementalTasks);
+		const completedTasks = getCompletedTasks(tasks);
 		for (const [areaId, tasks] of tree) {
 			const projectId = areaProjectsMap.get(areaId);
 			for (const task of tasks)
@@ -297,7 +289,9 @@ export function createTaskSyncer(props: ConfigProps) {
 		const pinAt = properties.PinAt?.date
 			? new Date(properties.PinAt.date.start)
 			: undefined;
-		const waitingForDate = extractWaitingDate(properties.Waiting?.rich_text ?? []);
+		const waitingForDate = extractWaitingDate(
+			properties.Waiting?.rich_text ?? []
+		);
 		const deadline = properties.Deadline?.date
 			? new Date(properties.Deadline.date.start)
 			: undefined;
