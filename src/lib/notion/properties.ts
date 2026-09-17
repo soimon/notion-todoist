@@ -137,7 +137,7 @@ export const getMarkdownTitle = (
 		property => property.type === 'title'
 	) as ((typeof page.properties)[number] & {type: 'title'}) | undefined;
 	const titleValue = titleProperty?.title
-		.map(t => (t.href ? `[**${t.plain_text}**](${t.href})` : t.plain_text))
+		.map(t => (t.href ? `[${t.plain_text}](${t.href})` : t.plain_text))
 		.join('');
 	return titleValue;
 };

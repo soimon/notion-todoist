@@ -314,19 +314,41 @@ export class NotionMutationQueue {
 }
 
 function formatTitle(text: string) {
-	if (hasLinks(text)) {
-		const linkSearch = /\[.*?\]\((.*?)\)/g;
-		return text
-			.split(linkSearch)
-			.filter(v => v)
-			.map(content => {
-				if (hasLinks(content)) {
-					const id = extractIdFromLink(content);
-					if (id) return {mention: {page: {id}}};
-				}
-				return {text: {content}};
-			});
-	} else return [{text: {content: text}}];
+	const linkSearch = /\[([^\]]*?)\]\((.*?)\)/g;
+	const parts: NotionRichTextSegment[] = [];
+	let lastIndex = 0;
+	let match: RegExpExecArray | null;
+
+	while ((match = linkSearch.exec(text)) !== null) {
+		// Push any plain text that precedes this link
+		if (match.index > lastIndex) {
+			parts.push({text: {content: text.slice(lastIndex, match.index)}});
+		}
+		// Push the link segment itself (always present when the regex matches)
+		parts.push(titleSegmentToRichText(match[1]!, match[2]!));
+		lastIndex = linkSearch.lastIndex;
+	}
+
+	if (lastIndex < text.length) {
+		parts.push({text: {content: text.slice(lastIndex)}});
+	}
+
+	return parts.length > 0 ? parts : [{text: {content: text}}];
+}
+
+type NotionRichTextSegment =
+	| {mention: {page: {id: string}}}
+	| {text: {content: string; link?: {url: string}}};
+
+function titleSegmentToRichText(
+	label: string,
+	url: string
+): NotionRichTextSegment {
+	if (hasLinks(url)) {
+		const id = extractIdFromLink(url);
+		if (id) return {mention: {page: {id}}};
+	}
+	return {text: {content: label, link: {url}}};
 }
 
 const createDateMention = (date?: Date, withTime = false) =>
