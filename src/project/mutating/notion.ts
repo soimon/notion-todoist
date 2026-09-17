@@ -320,12 +320,12 @@ function formatTitle(text: string) {
 	let match: RegExpExecArray | null;
 
 	while ((match = linkSearch.exec(text)) !== null) {
+		// Push any plain text that precedes this link
 		if (match.index > lastIndex) {
 			parts.push({text: {content: text.slice(lastIndex, match.index)}});
 		}
-		if (match[1] !== undefined && match[2] !== undefined) {
-			parts.push(titleSegmentToRichText(match[1], match[2]));
-		}
+		// Push the link segment itself (always present when the regex matches)
+		parts.push(titleSegmentToRichText(match[1]!, match[2]!));
 		lastIndex = linkSearch.lastIndex;
 	}
 
